@@ -171,22 +171,24 @@
 
         packages = {
 
-          revealjs = nix-utils-lib.raw-derivation {
+          reveal-js = nix-utils-lib.raw-derivation {
             src = pkgs.fetchFromGitHub {
               owner = "hakimel";
               repo = "reveal.js";
               rev = "039972c730690af7a83a5cb832056a7cc8b565d7";
-              hash = "sha256-X+iRAt2Yzp1ePtmHT5UJ4MjwFVMu2gixmw9+zoqPq20=";
+              hash = "sha256-X43lsjoLBWmttIKj9Jzut0UP0dZlsue3fYbJ3++ojbU=";
             };
+            name = "reveal-js";
           };
 
-          revealjs-plugins = nix-utils-lib.raw-derivation {
+          reveal-js-plugins = nix-utils-lib.raw-derivation {
             src = pkgs.fetchFromGitHub {
               owner = "rajgoel";
               repo = "reveal.js-plugins";
               rev = "a90372093213587e27ac9b17f5d981414934143e";
               hash = "sha256-4wM0VotPmrgrxarocJxYXa/v+wo/8rREwBj/QNZTj08=";
             };
+            name = "reveal-js-plugins";
           };
 
           citation-style-language-styles = nix-utils-lib.raw-derivation {
@@ -196,6 +198,7 @@
               rev = "3602c18c16d51ff5e4996c2c7da24ea2cc5e546c";
               hash = "sha256-X+iRAt2Yzp1ePtmHT5UJ4MjwFVMu2gixmw9+zoqPq20=";
             };
+            name = "citation-style-language-styles";
           };
         };
 
