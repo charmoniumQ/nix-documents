@@ -39,6 +39,8 @@
               '';
             };
 
+          # TODO: User should be able to specify Lua filters, Haskell filters.
+          # TODO: User should be able to specify template.
           markdown-document =
             { src
             , name ? null

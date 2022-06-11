@@ -7,13 +7,13 @@
 2. It can pull packages from the extensive [nixpkgs] repository.
 3. It can installs packages in a sandbox, so they don't pollute your system (like Python's virtualenv or `node_modules`). If two packages call for the same version of a dependency, Nix is able to only install the dependency once (unlike virtualenv).
 
-LaTeX has no standardized way of specifying the dependent packages, so building LaTeX documents on a fresh machine is a pain. The usual solution is to install a version of LaTeX bundled with gigabytes packages and fonts (e.g. `texlive-full`). Nix is able to:
+Consider compiling a LaTeX source code from a colleague. LaTeX has no standardized way of specifying the dependent packages, so you have to be prepared for compile errors. One solution is to install a version of LaTeX bundled with gigabytes packages and fonts (e.g. `texlive-full`). Nix is able to:
 
-- just download the things you need, not gigabytes of `texlive-full`
-- compile documents in a reproducible way
-- work with minimal setup (just installing Nix and Nix flakes), even if you require custom packages
-- install dependencies to a sandbox without affecting your native LaTeX installation
-- use the same package spec on any Unix system (including Mac OSX)
+1. just download the things you need, not gigabytes of `texlive-full`
+2. compile documents in a reproducible way
+3. work with minimal setup (just installing Nix and Nix flakes), even if you require custom packages (e.g. Python-generated graphs)
+4. install dependencies to a sandbox without affecting (or requiring) your native LaTeX installation
+5. use the same package spec on any Unix system (including Mac OSX)
 
 [Nix]: https://builtwithnix.org/
 [nixpkgs]: https://search.nixos.org/packages
@@ -25,7 +25,7 @@ There are some plugins that let one embed one document in another. For example [
 1. It enables incremental compilation; if the Graphviz code did not change but other parts of the pandoc code did, Graphviz does not need to be invoked.
 2. It is more flexible. There may be some other compiler for which there is no pandoc plugin, or there may be some option you need to set on Graphviz that the plugin doesn't support.
 
-[pandoc-graphviz]
+[pandoc-graphviz]: https://github.com/Hakuyume/pandoc-filter-graphviz
 
 ## markdown-document
 
@@ -53,9 +53,9 @@ I based this off of the excellent [pandoc-scholar], which adds extensions to Mar
 
 - The syntax is prettier.
 - You don't have to run the compiler multiple times to get the right output.
-- Extensions can be scripted in Lua, which is more modern than the TeX language.
+- Extensions can be written in Haskell or Lua, which are both "nicer" than the TeX language.
 - The output is equally pretty, since Pandoc uses ConTeXt, XeTeX, or LaTeX under the hood.
-- You can still drop down to raw LaTeX from Markdown, if you must. This will only work when the output is PDF.
+- You can still drop down to raw LaTeX from Markdown, if you must.
 - Alternatively, if you have a TikZ
 
 See [tests/markdown/index.md](tests/markdown/index.md) for an example.
