@@ -14,11 +14,12 @@
         pkgs = nixpkgs.legacyPackages.${system};
         nix-utils-lib = nix-utils.lib.${system};
         nix-utils-pkgs = nix-utils.packages.${system};
-      in rec {
+      in
+      rec {
         lib = rec {
 
           graphviz-document =
-            {src, name ? null, main ? "index.dot", output-format ? "svg" }:
+            { src, name ? null, main ? "index.dot", output-format ? "svg" }:
             pkgs.stdenv.mkDerivation {
               name = nix-utils-lib.default name (builtins.baseNameOf src);
               inherit src;
@@ -27,8 +28,8 @@
               '';
             };
 
-          plantuml-documents = 
-            {src, name ? null, output-format ? "svg" }:
+          plantuml-documents =
+            { src, name ? null, output-format ? "svg" }:
             pkgs.stdenv.mkDerivation {
               name = nix-utils-lib.default name (builtins.baseNameOf src);
               inherit src;
@@ -46,22 +47,22 @@
             , pdf-engine ? "context"
             , output-format ? "pdf" # passed to Pandoc
             , csl-style ? "acm-sig-proceedings" # from CSL styles repo
-            # Pandoc Markdown extensions:
+              # Pandoc Markdown extensions:
             , yaml-metadata-block ? true
             , citeproc ? true
             , tex-math-dollars ? true
             , raw-tex ? true
             , multiline-tables ? true
-            # pandoc-lua-filters to apply:
+              # pandoc-lua-filters to apply:
             , abstract-to-meta ? true
             , pagebreak ? true
             , pandoc-crossref ? true
             , cito ? true
-            , texlive-packages ? {}
-            , nix-packages ? []
+            , texlive-packages ? { }
+            , nix-packages ? [ ]
             }:
             let
-              pandoc-markdown-with-extensions = 
+              pandoc-markdown-with-extensions =
                 "markdown"
                 + (if yaml-metadata-block then "+yaml_metadata_block" else "")
                 + (if citeproc then "+citations" else "")
@@ -70,26 +71,26 @@
                 + (if multiline-tables then "+multiline_tables" else "")
               ;
               pandoc-lua-filters-path = "${pkgs.pandoc-lua-filters}/share/pandoc/filters";
-              pandoc-filters = 
+              pandoc-filters =
                 ""
                 + (if abstract-to-meta
-                   then " --lua-filter=${pandoc-lua-filters-path}/abstract-to-meta.lua"
-                   else "")
+                then " --lua-filter=${pandoc-lua-filters-path}/abstract-to-meta.lua"
+                else "")
                 + (if pagebreak
-                   then " --lua-filter=${pandoc-lua-filters-path}/pagebreak.lua"
-                   else "")
+                then " --lua-filter=${pandoc-lua-filters-path}/pagebreak.lua"
+                else "")
                 + (if cito
-                   then " --lua-filter=${pandoc-lua-filters-path}/cito.lua"
-                   else "")
+                then " --lua-filter=${pandoc-lua-filters-path}/cito.lua"
+                else "")
                 + (if pandoc-crossref
-                   then " --filter=${pkgs.haskellPackages.pandoc-crossref}/bin/pandoc-crossref"
-                   else "")
+                then " --filter=${pkgs.haskellPackages.pandoc-crossref}/bin/pandoc-crossref"
+                else "")
                 + (if citeproc
-                   then " --citeproc"
-                   else "")
+                then " --citeproc"
+                else "")
               ;
               pdf-engine-texlive-packages = {
-                context = {inherit (pkgs.texlive) scheme-context;};
+                context = { inherit (pkgs.texlive) scheme-context; };
                 pdflatex = {
                   inherit (pkgs.texlive)
                     scheme-basic
@@ -109,17 +110,20 @@
                     subfig
                     caption
                     float
-                  ;
+                    ;
                 };
-                lualatex = {inherit (pkgs.texlive) scheme-basic;};
-                tectonic = {inherit (pkgs.texlive) scheme-basic;};
+                lualatex = builtins.throw "Not yet supported";
+                # lualatex = {inherit (pkgs.texlive) scheme-basic;};
+                tectonic = builtins.throw "Not yet supported";
+                # tectonic = {inherit (pkgs.texlive) scheme-basic;};
                 latexmk = builtins.throw (
                   "I can't see a reason to use latexmk when Pandoc will take"
-                  + " care of running latex multiple times");
-                xelatex = {inherit (pkgs.texlive) scheme-small;};
+                  + " care of running latex multiple times"
+                );
+                xelatex = { inherit (pkgs.texlive) scheme-small; };
               };
               pdf-engine-nix-packages = {
-                tectonic = [pkgs.tectonic];
+                tectonic = [ pkgs.tectonic ];
               };
             in
             pkgs.stdenv.mkDerivation {
@@ -133,13 +137,15 @@
                     ((
                       nix-utils-lib.getAttrOr
                         pdf-engine-texlive-packages
-                        pdf-engine {})
+                        pdf-engine
+                        { }
+                    )
                     // texlive-packages))
                 ]
                 ++ nix-packages
-                ++ (nix-utils-lib.getAttrOr pdf-engine-nix-packages pdf-engine [])
+                ++ (nix-utils-lib.getAttrOr pdf-engine-nix-packages pdf-engine [ ])
               );
-              FONTCONFIG_FILE = pkgs.makeFontsConf {fontDirectories = []; };
+              FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
               installPhase = ''
                 for input in $src/* ${inputs}/*; do
                   cp --recursive $input .
@@ -155,6 +161,8 @@
               '';
             }
           ;
+
+          # TODO: support LaTeX document
         };
 
         formatter = pkgs.nixpkgs-fmt;
@@ -194,7 +202,7 @@
             deriv = lib.plantuml-documents {
               src = ./tests/plantuml;
             };
-            paths = ["index.svg"];
+            paths = [ "index.svg" ];
           };
           graphviz-document = lib.graphviz-document {
             src = ./tests/graphviz;
