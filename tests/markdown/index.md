@@ -19,6 +19,12 @@ First, note the YAML block header which precedes the Markdown document. This rep
 
 I can cite things in a BibTeX file from the YAML block using the `[@bibtex_key]`: [@collberg2016repeatability]
 
+Note that the citation style format can be changed in the compile flags or Nix flake.
+
+However, Pandoc also supports [Citation Style Language][CSL] data JSON, which is much cleaner. Note that Zotero can export CSL data.
+
+[CSL]: https://citationstyles.org/
+
 I can even use [CiTO vocabulary] using `[@cito_prop:bibtex_key]`: [@evidence:collberg2016repeatability]
 
 [CiTO vocabulary]: https://sparontologies.github.io/cito/current/cito.html
@@ -27,7 +33,7 @@ I can write comments with `<!-- like this -->`: <!-- like this -->
 
 I can reference a footnote with `blah[^footnote]`: blah[^footnote]
 
-So long as you define it like this `[^footnote]: ...`[^footnote].
+So long as you define it like this `[^footnote]: ...`.
 
 [^footnote]: This is the text of the footnote.
 
