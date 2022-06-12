@@ -21,7 +21,25 @@ Also see [this blog post].
 [nixpkgs]: https://search.nixos.org/packages
 [this blog post]: https://flyx.org/nix-flakes-latex/
 
-<!-- TODO: Show Nix installation and flake.nix template -->
+## Installing Nix
+
+Install Nix with Nix flakes
+
+```shell
+$ # See https://nixos.org/download.html
+$ sh <(curl -L https://nixos.org/nix/install) --daemon
+
+$ # See https://nixos.wiki/wiki/Flakes
+$ nix-env -iA nixpkgs.nixFlakes
+$ echo experimental-features = nix-command flakes >> ~/.config/nix/nix.conf
+```
+
+Once this is done, initialize a new project with:
+
+```shell
+$ # To start a new flake,
+$ nix flake init --template github.com:charmoniumQ/nix-documents
+```
 
 ## A note on composition
 
@@ -63,7 +81,7 @@ nix-documents.lib.${system}.markdown-document {
   # https://github.com/jgm/pandoc-templates/blob/master/default.latex
   # And Pandoc manula on templating
   # https://pandoc.org/MANUAL.html#templates
-  template = ./
+  template = "template.tex";
 }
 ```
 
@@ -76,18 +94,40 @@ I based this off of the excellent [pandoc-scholar], which adds extensions to Mar
 5. You can still drop down to raw LaTeX from Markdown, if you must: either using LaTeX to generate a figure or embedding LaTeX commands in Markdown.
 6. You can output to more formats, including docx, EPUB, ODT, HTML, and others.
 
-See [tests/markdown/index.md](tests/markdown/index.md) for an example which compiles to: [build/markdown/index.pdf](build/markdown/index.pdf).
+See [tests/markdown/index.md]for an example which compiles to [examples/markdown-pdflatex.pdf].
 
+[tests/markdown/index.md]: tests/markdown/index.md
+[examples/markdown-pdflatex.pdf]: examples/markdown-pdflatex.pdf
 [pandoc-scholar]: https://github.com/pandoc-scholar/pandoc-scholar
-
-## luatex-document
-
-## revealjs-presentation
 
 ## graphviz-figure
 
+```nix
+nix-documents.lib.${system}.graphviz-document {
+  src = ./.;
+
+  # This is the default and can be omitted.
+  main = "index.puml";
+}
+```
+
+See [tests/graphviz/index.dot] for an example which compiles to [examples/graphviz.svg].
+
 ## plantuml-figure
 
-## latex-figure
+```nix
+nix-documents.lib.${system}.graphviz-document {
+  src = ./.;
 
-## asymptote-figure
+  # This is the default and can be omitted.
+  main = "index.dot";
+}
+```
+
+See [tests/plantuml/index.puml] for an example which compiles to [examples/plantuml.svg].
+
+## revealjs-presentation
+
+## latex-document
+
+## latex-figure

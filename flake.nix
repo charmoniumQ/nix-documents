@@ -270,14 +270,14 @@
         ];
 
         checks = { } // packages;
-
-        # templates = {
-        #   default = {
-        #     path = ./templates/markdown;
-        #   };
-        # };
       }
-    );
+    ) // {
+      templates = {
+        default = {
+          path = ./templates/markdown;
+        };
+      };
+    };
 
   # TODO: allow input packages
 }
