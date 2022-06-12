@@ -4,11 +4,12 @@
 set -o errexit -o nounset -o xtrace -o pipefail
 
 nix fmt
-nix flake check --show-trace
+nix --print-build-logs flake check --show-trace
 
 rm --recursive --force examples
 nix --print-build-logs build .#examples
 cp --dereference --recursive result examples
+chmod u+rw,g+rw --recursive examples
 unlink result
 
 git add flake.nix flake.lock examples

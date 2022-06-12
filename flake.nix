@@ -19,9 +19,13 @@
         lib = rec {
 
           graphvizFigure =
-            { src, name ? null, main ? "index.dot", output-format ? "svg" }:
+            { src
+            , name ? builtins.baseNameOf src
+            , main ? "index.dot"
+            , output-format ? "svg"
+            }:
             pkgs.stdenv.mkDerivation {
-              name = nix-utils-lib.default name (builtins.baseNameOf src);
+              inherit name;
               inherit src;
               installPhase = ''
                 ${pkgs.graphviz}/bin/dot $src/${main} -T${output-format} -o$out
@@ -30,14 +34,21 @@
             };
 
           # TODO: plantuml should just do one figure at a time.
-          plantumlFigures =
-            { src, name ? null, output-format ? "svg" }:
+          plantumlFigure =
+            { src
+            , name ? builtins.baseNameOf src
+            , main ? "index.puml"
+            , output-format ? "svg"
+            }:
             pkgs.stdenv.mkDerivation {
-              name = nix-utils-lib.default name (builtins.baseNameOf src);
+              inherit name;
               inherit src;
+              FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
               installPhase = ''
                 mkdir $out
-                ${pkgs.plantuml}/bin/plantuml $src -t${output-format} -o$out
+                tmp=$(mktemp --directory)
+                ${pkgs.plantuml}/bin/plantuml $src/${main} -t${output-format} -o$tmp
+                mv $tmp/* $out
               '';
               phases = [ "unpackPhase" "installPhase" ];
             };
@@ -204,7 +215,7 @@
           (nix-utils-lib.mergeDerivations {
             name = "examples";
             packageSet = nix-utils-lib.packageSet [
-              (lib.plantumlFigures {
+              (lib.plantumlFigure {
                 src = ./tests/plantuml;
                 name = "example-plantuml";
               })
