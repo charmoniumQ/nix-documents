@@ -15,8 +15,11 @@ Consider compiling a LaTeX source code from a colleague. LaTeX has no standardiz
 4. install dependencies to a sandbox without affecting (or requiring) your native LaTeX installation
 5. use the same package spec on any Unix system (including Mac OSX)
 
+Also see [this blog post].
+
 [Nix]: https://builtwithnix.org/
 [nixpkgs]: https://search.nixos.org/packages
+[this blog post]: https://flyx.org/nix-flakes-latex/
 
 <!-- TODO: Show Nix installation and flake.nix template -->
 

@@ -18,7 +18,7 @@
       rec {
         lib = rec {
 
-          graphviz-document =
+          graphvizFigure =
             { src, name ? null, main ? "index.dot", output-format ? "svg" }:
             pkgs.stdenv.mkDerivation {
               name = nix-utils-lib.default name (builtins.baseNameOf src);
@@ -26,9 +26,11 @@
               installPhase = ''
                 ${pkgs.graphviz}/bin/dot $src/${main} -T${output-format} -o$out
               '';
+              phases = [ "unpackPhase" "installPhase" ];
             };
 
-          plantuml-documents =
+          # TODO: plantuml should just do one figure at a time.
+          plantumlFigures =
             { src, name ? null, output-format ? "svg" }:
             pkgs.stdenv.mkDerivation {
               name = nix-utils-lib.default name (builtins.baseNameOf src);
@@ -37,63 +39,64 @@
                 mkdir $out
                 ${pkgs.plantuml}/bin/plantuml $src -t${output-format} -o$out
               '';
+              phases = [ "unpackPhase" "installPhase" ];
             };
 
           # TODO: User should be able to specify Lua filters, Haskell filters.
           # TODO: User should be able to specify template.
-          markdown-document =
+          markdownDocument =
             { src
             , name ? null
             , main ? "index.md"
             , inputs ? nix-utils-pkgs.empty
-            , pdf-engine ? "context"
-            , output-format ? "pdf" # passed to Pandoc
-            , csl-style ? "acm-sig-proceedings" # from CSL styles repo
-            , pandoc-args ? []
+            , pdfEngine ? "context"
+            , outputFormat ? "pdf" # passed to Pandoc
+            , cslStyle ? "acm-sig-proceedings" # from CSL styles repo
+            , pandocArgs ? [ ]
             , template ? null
               # Pandoc Markdown extensions:
-            , yaml-metadata-block ? true
+            , yamlMetadataBlock ? true
             , citeproc ? true
-            , tex-math-dollars ? true
-            , raw-tex ? true
-            , multiline-tables ? true
+            , texMathDollars ? true
+            , rawTex ? true
+            , multilineTables ? true
               # pandoc-lua-filters to apply:
-            , abstract-to-meta ? true
+            , abstractToMeta ? true
             , pagebreak ? true
-            , pandoc-crossref ? true
+            , pandocCrossref ? true
             , cito ? true
-            , texlive-packages ? { }
-            , nix-packages ? [ ]
+            , texlivePackages ? { }
+            , nixPackages ? [ ]
             }:
             let
-              pandoc-markdown-with-extensions =
+              pandocMarkdownWithExtensions =
                 "markdown"
-                + (if yaml-metadata-block then "+yaml_metadata_block" else "")
+                + (if yamlMetadataBlock then "+yaml_metadata_block" else "")
                 + (if citeproc then "+citations" else "")
-                + (if tex-math-dollars then "+tex_math_dollars" else "")
-                + (if raw-tex then "+raw_tex" else "")
-                + (if multiline-tables then "+multiline_tables" else "")
+                + (if texMathDollars then "+tex_math_dollars" else "")
+                + (if rawTex then "+raw_tex" else "")
+                + (if multilineTables then "+multiline_tables" else "")
               ;
-              pandoc-lua-filters-path = "${pkgs.pandoc-lua-filters}/share/pandoc/filters";
-              pandoc-filters =
+              pandocLuaFiltersPath = "${pkgs.pandoc-lua-filters}/share/pandoc/filters";
+              myPandocArgs =
                 ""
-                + (if abstract-to-meta
-                then " --lua-filter=${pandoc-lua-filters-path}/abstract-to-meta.lua"
+                + (if abstractToMeta
+                then " --lua-filter=${pandocLuaFiltersPath}/abstract-to-meta.lua"
                 else "")
                 + (if pagebreak
-                then " --lua-filter=${pandoc-lua-filters-path}/pagebreak.lua"
+                then " --lua-filter=${pandocLuaFiltersPath}/pagebreak.lua"
                 else "")
                 + (if cito
-                then " --lua-filter=${pandoc-lua-filters-path}/cito.lua"
+                then " --lua-filter=${pandocLuaFiltersPath}/cito.lua"
                 else "")
-                + (if pandoc-crossref
+                + (if pandocCrossref
                 then " --filter=${pkgs.haskellPackages.pandoc-crossref}/bin/pandoc-crossref"
                 else "")
                 + (if citeproc
                 then " --citeproc"
                 else "")
               ;
-              pdf-engine-texlive-packages = {
+              pdfEngineTexlivePackages = {
                 context = { inherit (pkgs.texlive) scheme-context; };
                 pdflatex = {
                   inherit (pkgs.texlive)
@@ -126,7 +129,7 @@
                 );
                 xelatex = { inherit (pkgs.texlive) scheme-small; };
               };
-              pdf-engine-nix-packages = {
+              pdfEngineNixPackages = {
                 tectonic = [ pkgs.tectonic ];
               };
             in
@@ -140,14 +143,14 @@
                   (pkgs.texlive.combine
                     ((
                       nix-utils-lib.getAttrOr
-                        pdf-engine-texlive-packages
-                        pdf-engine
+                        pdfEngineTexlivePackages
+                        pdfEngine
                         { }
                     )
-                    // texlive-packages))
+                    // texlivePackages))
                 ]
-                ++ nix-packages
-                ++ (nix-utils-lib.getAttrOr pdf-engine-nix-packages pdf-engine [ ])
+                ++ nixPackages
+                ++ (nix-utils-lib.getAttrOr pdfEngineNixPackages pdfEngine [ ])
               );
               FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
               installPhase = ''
@@ -155,92 +158,96 @@
                   cp --recursive $input .
                 done
                 ${pkgs.pandoc}/bin/pandoc \
-                  --from=${pandoc-markdown-with-extensions} \
-                  ${pandoc-filters} \
-                  --csl=${packages.citation-style-language-styles}/${csl-style}.csl \
-                  --pdf-engine=${pdf-engine} \
-                  --to=${output-format} \
+                  --from=${pandocMarkdownWithExtensions} \
+                  ${myPandocArgs} \
+                  --csl=${packages.citation-style-language-styles}/${cslStyle}.csl \
+                  --pdf-engine=${pdfEngine} \
+                  --to=${outputFormat} \
                   --output=$out \
-                  ${builtins.concatStringsSep " " (builtins.map builtins.escapeShellArg pandoc-args)} \
+                  ${builtins.concatStringsSep " " (builtins.map builtins.escapeShellArg pandocArgs)} \
                   ${main}
               '';
+              phases = [ "unpackPhase" "installPhase" ];
             }
           ;
 
-          # TODO: support LaTeX document
+          # TODO: support LuaTeX document
         };
 
         formatter = pkgs.nixpkgs-fmt;
 
-        packages = {
-
-          reveal-js = nix-utils-lib.raw-derivation {
-            src = pkgs.fetchFromGitHub {
-              owner = "hakimel";
-              repo = "reveal.js";
-              rev = "039972c730690af7a83a5cb832056a7cc8b565d7";
-              hash = "sha256-X43lsjoLBWmttIKj9Jzut0UP0dZlsue3fYbJ3++ojbU=";
-            };
+        packages = nix-utils-lib.packageSet [
+          (pkgs.fetchFromGitHub {
+            owner = "hakimel";
+            repo = "reveal.js";
+            rev = "039972c730690af7a83a5cb832056a7cc8b565d7";
+            hash = "sha256-X43lsjoLBWmttIKj9Jzut0UP0dZlsue3fYbJ3++ojbU=";
             name = "reveal-js";
-          };
+          })
 
-          reveal-js-plugins = nix-utils-lib.raw-derivation {
-            src = pkgs.fetchFromGitHub {
-              owner = "rajgoel";
-              repo = "reveal.js-plugins";
-              rev = "a90372093213587e27ac9b17f5d981414934143e";
-              hash = "sha256-4wM0VotPmrgrxarocJxYXa/v+wo/8rREwBj/QNZTj08=";
-            };
+          (pkgs.fetchFromGitHub {
+            owner = "rajgoel";
+            repo = "reveal.js-plugins";
+            rev = "a90372093213587e27ac9b17f5d981414934143e";
+            hash = "sha256-4wM0VotPmrgrxarocJxYXa/v+wo/8rREwBj/QNZTj08=";
             name = "reveal-js-plugins";
-          };
+          })
 
-          citation-style-language-styles = nix-utils-lib.raw-derivation {
-            src = pkgs.fetchFromGitHub {
-              owner = "citation-style-language";
-              repo = "styles";
-              rev = "3602c18c16d51ff5e4996c2c7da24ea2cc5e546c";
-              hash = "sha256-X43lsjoLBWmttIKj9Jzut0UP0dZlsue3fYbJ3++ojbU=";
-            };
+          (pkgs.fetchFromGitHub {
+            owner = "citation-style-language";
+            repo = "styles";
+            rev = "3602c18c16d51ff5e4996c2c7da24ea2cc5e546c";
+            hash = "sha256-X+iRAt2Yzp1ePtmHT5UJ4MjwFVMu2gixmw9+zoqPq20=";
             name = "citation-style-language-styles";
-          };
-        };
+          })
 
-        checks = {
-          plantuml-documents = nix-utils-lib.exists-in-derivation {
-            deriv = lib.plantuml-documents {
-              src = ./tests/plantuml;
-            };
-            paths = [ "index.svg" ];
-          };
-          graphviz-document = lib.graphviz-document {
-            src = ./tests/graphviz;
-          };
-          markdown-document-pdflatex = lib.markdown-document {
-            src = ./tests/markdown;
-            pdf-engine = "pdflatex";
-            name = "markdown-document-pdflatex";
-          };
-          markdown-document-xelatex = lib.markdown-document {
-            src = ./tests/markdown;
-            pdf-engine = "xelatex";
-            name = "markdown-document-xelatex";
-          };
-          # markdown-document-lualatex = lib.markdown-document {
-          #   src = ./tests/markdown;
-          #   pdf-engine = "lualatex";
-          #   name = "markdown-document-lualatex";
-          # };
-          # markdown-document-tectonic = lib.markdown-document {
-          #   src = ./tests/markdown;
-          #   pdf-engine = "tectonic";
-          #   name = "markdown-document-tectonic";
-          # };
-          markdown-document-context = lib.markdown-document {
-            src = ./tests/markdown;
-            pdf-engine = "context";
-            name = "markdown-document-context";
-          };
-        } // packages;
+          (nix-utils-lib.mergeDerivations {
+            name = "examples";
+            packageSet = nix-utils-lib.packageSet [
+              (lib.plantumlFigures {
+                src = ./tests/plantuml;
+                name = "example-plantuml";
+              })
+
+              (lib.graphvizFigure {
+                src = ./tests/graphviz;
+                name = "example-graphviz.svg";
+              })
+
+              (lib.markdownDocument {
+                src = ./tests/markdown;
+                pdfEngine = "pdflatex";
+                name = "example-markdown-pdflatex.pdf";
+              })
+
+              (lib.markdownDocument {
+                src = ./tests/markdown;
+                pdfEngine = "xelatex";
+                name = "example-markdown-xelatex.pdf";
+              })
+
+              # (lib.markdownDocument {
+              #   src = ./tests/markdown;
+              #   pdfEngine = "lualatex";
+              #   name = "example-markdown-document-lualatex.pdf";
+              # })
+
+              # (lib.markdownDocument {
+              #   src = ./tests/markdown;
+              #   pdfEngine = "tectonic";
+              #   name = "example-markdown-document-tectonic.pdf";
+              # })
+
+              (lib.markdownDocument {
+                src = ./tests/markdown;
+                pdfEngine = "context";
+                name = "example-markdown-context.pdf";
+              })
+            ];
+          })
+        ];
+
+        checks = { } // packages;
       }
     );
 }
