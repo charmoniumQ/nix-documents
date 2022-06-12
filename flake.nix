@@ -49,6 +49,8 @@
             , pdf-engine ? "context"
             , output-format ? "pdf" # passed to Pandoc
             , csl-style ? "acm-sig-proceedings" # from CSL styles repo
+            , pandoc-args ? []
+            , template ? null
               # Pandoc Markdown extensions:
             , yaml-metadata-block ? true
             , citeproc ? true
@@ -159,6 +161,7 @@
                   --pdf-engine=${pdf-engine} \
                   --to=${output-format} \
                   --output=$out \
+                  ${builtins.concatStringsSep " " (builtins.map builtins.escapeShellArg pandoc-args)} \
                   ${main}
               '';
             }
@@ -196,7 +199,7 @@
               owner = "citation-style-language";
               repo = "styles";
               rev = "3602c18c16d51ff5e4996c2c7da24ea2cc5e546c";
-              hash = "sha256-X+iRAt2Yzp1ePtmHT5UJ4MjwFVMu2gixmw9+zoqPq20=";
+              hash = "sha256-X43lsjoLBWmttIKj9Jzut0UP0dZlsue3fYbJ3++ojbU=";
             };
             name = "citation-style-language-styles";
           };

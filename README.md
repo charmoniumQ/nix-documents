@@ -18,6 +18,8 @@ Consider compiling a LaTeX source code from a colleague. LaTeX has no standardiz
 [Nix]: https://builtwithnix.org/
 [nixpkgs]: https://search.nixos.org/packages
 
+<!-- TODO: Show Nix installation and flake.nix template -->
+
 ## A note on composition
 
 There are some plugins that let one embed one document in another. For example [pandoc-graphviz] lets one render Graphviz code embedded in a pandoc document. I prefer to do this separately, with a standalone Graphviz file and a pandoc file that just has an image include. Nix makes it easy for one document to depend on another. This is advantages for two reasons:
@@ -27,6 +29,8 @@ There are some plugins that let one embed one document in another. For example [
 
 [pandoc-graphviz]: https://github.com/Hakuyume/pandoc-filter-graphviz
 
+<!-- TODO: Show flake.nix composition -->
+
 ## markdown-document
 
 This will compile your Markdown document:
@@ -35,7 +39,11 @@ This will compile your Markdown document:
 nix-documents.lib.${system}.markdown-document {
   src = ./.;
 
-  # this is the default and can be omitted.
+  # Choose from this repo, without the .csl:
+  # [1]: https://github.com/citation-style-language/styles
+  csl-style = "acm-sig-proceedings";
+
+  # This is the default and can be omitted.
   main = "index.md";
 
   # This is the default and can be omitted.
@@ -43,26 +51,33 @@ nix-documents.lib.${system}.markdown-document {
   # https://pandoc.org/MANUAL.html#option--to
   output = "pdf";
 
-  # Choose from this repo, without the .csl:
-  # [1]: https://github.com/citation-style-language/styles
-  csl-style = "acm-sig-proceedings";
-};
+  # Omit if not needed
+  texlive-packages = {
+    inherit (pkgs.texlive) physics tikz;
+  };
+
+  # See Pandoc's default template
+  # https://github.com/jgm/pandoc-templates/blob/master/default.latex
+  # And Pandoc manula on templating
+  # https://pandoc.org/MANUAL.html#templates
+  template = ./
+}
 ```
 
 I based this off of the excellent [pandoc-scholar], which adds extensions to Markdown that make it amenable to academic writing (e.g. citation counting). Writing Markdown has several advantages to writing raw LaTeX:
 
-- The syntax is prettier.
-- You don't have to run the compiler multiple times to get the right output.
-- Extensions can be written in Haskell or Lua, which are both "nicer" than the TeX language.
-- The output is equally pretty, since Pandoc uses ConTeXt, XeTeX, or LaTeX under the hood.
-- You can still drop down to raw LaTeX from Markdown, if you must.
-- Alternatively, if you have a TikZ
+1. The syntax is prettier.
+2. You don't have to run the compiler multiple times to get the right output.
+3. Extensions can be written in Haskell or Lua, which are both "nicer" than the TeX language.
+4. The output is equally pretty, since Pandoc uses ConTeXt, XeTeX, or LaTeX under the hood.
+5. You can still drop down to raw LaTeX from Markdown, if you must: either using LaTeX to generate a figure or embedding LaTeX commands in Markdown.
+6. You can output to more formats, including docx, EPUB, ODT, HTML, and others.
 
-See [tests/markdown/index.md](tests/markdown/index.md) for an example.
+See [tests/markdown/index.md](tests/markdown/index.md) for an example which compiles to: [build/markdown/index.pdf](build/markdown/index.pdf).
 
 [pandoc-scholar]: https://github.com/pandoc-scholar/pandoc-scholar
 
-## latex-document
+## luatex-document
 
 ## revealjs-presentation
 
