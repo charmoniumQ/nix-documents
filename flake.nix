@@ -10,10 +10,10 @@
   outputs = { self, nixpkgs, flake-utils, nix-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        system = "x86_64-linux";
         pkgs = nixpkgs.legacyPackages.${system};
         nix-utils-lib = nix-utils.lib.${system};
         nix-utils-pkgs = nix-utils.packages.${system};
+        nix-lib = nixpkgs.lib;
       in
       rec {
         lib = rec {
@@ -22,39 +22,59 @@
             { src
             , name ? builtins.baseNameOf src
             , main ? "index.dot"
-            , output-format ? "svg"
+
+              # See https://graphviz.org/docs/outputs/
+            , outputFormat ? "svg"
+
+              # See https://graphviz.org/docs/layouts/
+            , layoutEngine ? "dot"
+
+            , vars ? { }
+            , graphvizArgs ? [ ]
             }:
             pkgs.stdenv.mkDerivation {
               inherit name;
               inherit src;
-              installPhase = ''
-                ${pkgs.graphviz}/bin/dot $src/${main} -T${output-format} -o$out
+              buildPhase = ''
+                ${pkgs.graphviz}/bin/dot \
+                   -K${layoutEngine} \
+                   -T${outputFormat} \
+                   ${nix-lib.strings.escapeShellArgs (
+                     nix-lib.attrsets.mapAttrsToList
+                       (name: value: "-G${name}=${value}")
+                       vars)} \
+                   ${nix-lib.strings.escapeShellArgs graphvizArgs} \
+                   -o$out \
+                   $src/${main}
               '';
-              phases = [ "unpackPhase" "installPhase" ];
+              phases = [ "unpackPhase" "buildPhase" ];
             };
 
-          # TODO: plantuml should just do one figure at a time.
           plantumlFigure =
             { src
             , name ? builtins.baseNameOf src
             , main ? "index.puml"
-            , output-format ? "svg"
+            , outputFormat ? "svg"
+            , plantumlArgs ? [ ]
             }:
             pkgs.stdenv.mkDerivation {
               inherit name;
               inherit src;
               FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
-              installPhase = ''
-                mkdir $out
+              GRAPHVIZ_DOT = "${pkgs.graphviz}/bin/dot";
+              buildPhase = ''
                 tmp=$(mktemp --directory)
-                ${pkgs.plantuml}/bin/plantuml $src/${main} -t${output-format} -o$tmp
+                ${pkgs.plantuml}/bin/plantuml \
+                  -t${outputFormat} \
+                  -o$tmp \
+                  ${nix-lib.strings.escapeShellArgs plantumlArgs} \
+                  $src/${main}
                 mv $tmp/* $out
               '';
-              phases = [ "unpackPhase" "installPhase" ];
+              phases = [ "unpackPhase" "buildPhase" ];
             };
 
           # TODO: User should be able to specify Lua filters, Haskell filters.
-          # TODO: User should be able to specify template.
           markdownDocument =
             { src
             , name ? null
@@ -65,6 +85,8 @@
             , cslStyle ? "acm-sig-proceedings" # from CSL styles repo
             , pandocArgs ? [ ]
             , template ? null
+            , texlivePackages ? { }
+            , nixPackages ? [ ]
               # Pandoc Markdown extensions:
             , yamlMetadataBlock ? true
             , citeproc ? true
@@ -76,8 +98,6 @@
             , pagebreak ? true
             , pandocCrossref ? true
             , cito ? true
-            , texlivePackages ? { }
-            , nixPackages ? [ ]
             }:
             let
               pandocMarkdownWithExtensions =
@@ -89,24 +109,6 @@
                 + (if multilineTables then "+multiline_tables" else "")
               ;
               pandocLuaFiltersPath = "${pkgs.pandoc-lua-filters}/share/pandoc/filters";
-              myPandocArgs =
-                ""
-                + (if abstractToMeta
-                then " --lua-filter=${pandocLuaFiltersPath}/abstract-to-meta.lua"
-                else "")
-                + (if pagebreak
-                then " --lua-filter=${pandocLuaFiltersPath}/pagebreak.lua"
-                else "")
-                + (if cito
-                then " --lua-filter=${pandocLuaFiltersPath}/cito.lua"
-                else "")
-                + (if pandocCrossref
-                then " --filter=${pkgs.haskellPackages.pandoc-crossref}/bin/pandoc-crossref"
-                else "")
-                + (if citeproc
-                then " --citeproc"
-                else "")
-              ;
               pdfEngineTexlivePackages = {
                 context = { inherit (pkgs.texlive) scheme-context; };
                 pdflatex = {
@@ -164,23 +166,27 @@
                 ++ (nix-utils-lib.getAttrOr pdfEngineNixPackages pdfEngine [ ])
               );
               FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
-              installPhase = ''
+              buildPhase = ''
                 for input in $src/* ${inputs}/*; do
                   cp --recursive $input .
                 done
                 ${pkgs.pandoc}/bin/pandoc \
                   --from=${pandocMarkdownWithExtensions} \
-                  ${myPandocArgs} \
+                  ${if abstractToMeta then "--lua-filter=${pandocLuaFiltersPath}/abstract-to-meta.lua" else ""} \
+                  ${if pagebreak then "--lua-filter=${pandocLuaFiltersPath}/pagebreak.lua" else ""} \
+                  ${if cito then "--lua-filter=${pandocLuaFiltersPath}/cito.lua" else ""} \
+                  ${if pandocCrossref then "--filter=${pkgs.haskellPackages.pandoc-crossref}/bin/pandoc-crossref" else ""} \
+                  ${if citeproc then "--citeproc" else ""} \
                   --csl=${packages.citation-style-language-styles}/${cslStyle}.csl \
                   --pdf-engine=${pdfEngine} \
                   --to=${outputFormat} \
                   --output=$out \
-                  ${builtins.concatStringsSep " " (builtins.map builtins.escapeShellArg pandocArgs)} \
+                  ${if builtins.isNull template then "" else "--template=${template}"} \
+                  ${nix-lib.strings.escapeShellArgs pandocArgs} \
                   ${main}
               '';
-              phases = [ "unpackPhase" "installPhase" ];
-            }
-          ;
+              phases = [ "unpackPhase" "buildPhase" ];
+            };
 
           # TODO: support LuaTeX document
         };
@@ -214,51 +220,64 @@
 
           (nix-utils-lib.mergeDerivations {
             name = "examples";
-            packageSet = nix-utils-lib.packageSet [
-              (lib.plantumlFigure {
-                src = ./tests/plantuml;
-                name = "example-plantuml";
-              })
+            packageSet = nix-utils-lib.packageSet (
+              (if system == "i686-linux" then [ ] else [
+                (lib.plantumlFigure {
+                  src = ./tests/plantuml;
+                  name = "plantuml.svg";
+                })
+              ]) ++ [
+                (lib.graphvizFigure {
+                  src = ./tests/graphviz;
+                  name = "graphviz.svg";
+                  vars = {
+                    hello = "world";
+                  };
+                })
 
-              (lib.graphvizFigure {
-                src = ./tests/graphviz;
-                name = "example-graphviz.svg";
-              })
+                (lib.markdownDocument {
+                  src = ./tests/markdown;
+                  pdfEngine = "pdflatex";
+                  name = "markdown-pdflatex.pdf";
+                })
 
-              (lib.markdownDocument {
-                src = ./tests/markdown;
-                pdfEngine = "pdflatex";
-                name = "example-markdown-pdflatex.pdf";
-              })
+                (lib.markdownDocument {
+                  src = ./tests/markdown;
+                  pdfEngine = "xelatex";
+                  name = "markdown-xelatex.pdf";
+                })
 
-              (lib.markdownDocument {
-                src = ./tests/markdown;
-                pdfEngine = "xelatex";
-                name = "example-markdown-xelatex.pdf";
-              })
+                # (lib.markdownDocument {
+                #   src = ./tests/markdown;
+                #   pdfEngine = "lualatex";
+                #   name = "markdown-document-lualatex.pdf";
+                # })
 
-              # (lib.markdownDocument {
-              #   src = ./tests/markdown;
-              #   pdfEngine = "lualatex";
-              #   name = "example-markdown-document-lualatex.pdf";
-              # })
+                # (lib.markdownDocument {
+                #   src = ./tests/markdown;
+                #   pdfEngine = "tectonic";
+                #   name = "markdown-document-tectonic.pdf";
+                # })
 
-              # (lib.markdownDocument {
-              #   src = ./tests/markdown;
-              #   pdfEngine = "tectonic";
-              #   name = "example-markdown-document-tectonic.pdf";
-              # })
-
-              (lib.markdownDocument {
-                src = ./tests/markdown;
-                pdfEngine = "context";
-                name = "example-markdown-context.pdf";
-              })
-            ];
+                (lib.markdownDocument {
+                  src = ./tests/markdown;
+                  pdfEngine = "context";
+                  name = "markdown-context.pdf";
+                })
+              ]
+            );
           })
         ];
 
         checks = { } // packages;
+
+        # templates = {
+        #   default = {
+        #     path = ./templates/markdown;
+        #   };
+        # };
       }
     );
+
+  # TODO: allow input packages
 }

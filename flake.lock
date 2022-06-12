@@ -36,11 +36,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1655014165,
-        "narHash": "sha256-jG93phvZFl5PAWXXiT1AF5JwgNDePyomTf9IeTe4v54=",
+        "lastModified": 1655043862,
+        "narHash": "sha256-YC+IG6CpykHH4Da+/X/zK1WFWRB7whWquDVwZkuwLVc=",
         "owner": "charmoniumQ",
         "repo": "nix-utils",
-        "rev": "41f4e493ee6375928671f3cf1626e5b2a14ed26c",
+        "rev": "b9622a6f24cf9bdc478c750736ccfa97070d551e",
         "type": "github"
       },
       "original": {
