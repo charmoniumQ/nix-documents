@@ -4,7 +4,8 @@
       url = "github:numtide/flake-utils";
     };
     nix-utils = {
-      url = "github:charmoniumQ/nix-utils";
+      url = "path:/home/sam/box/nix-utils";
+      # url = "github:charmoniumQ/nix-utils";
     };
   };
   outputs = { self, nixpkgs, flake-utils, nix-utils }:
@@ -31,10 +32,17 @@
 
             , vars ? { }
             , graphvizArgs ? [ ]
+
+              # Nix packages will be accessible in the source directory by the derivation.name
+            , inputs ? [ ]
             }:
             pkgs.stdenv.mkDerivation {
               inherit name;
-              inherit src;
+              src = nix-utils-lib.mergeDerivations {
+                packageSet = {
+                  "." = [(nix-utils-lib.srcDerivation {inherit src;})] ++ inputs;
+                };
+              };
               buildPhase = ''
                 ${pkgs.graphviz}/bin/dot \
                    -K${layoutEngine} \
@@ -54,12 +62,21 @@
             { src
             , name ? builtins.baseNameOf src
             , main ? "index.puml"
+
+            # See https://plantuml.com/command-line
             , outputFormat ? "svg"
             , plantumlArgs ? [ ]
+
+              # Nix packages will be accessible in the source directory by the derivation.name
+            , inputs ? [ ]
             }:
             pkgs.stdenv.mkDerivation {
               inherit name;
-              inherit src;
+              src = nix-utils-lib.mergeDerivations {
+                packageSet = {
+                  "." = [(nix-utils-lib.srcDerivation {inherit src;})] ++ inputs;
+                };
+              };
               FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
               GRAPHVIZ_DOT = "${pkgs.graphviz}/bin/dot";
               buildPhase = ''
@@ -86,7 +103,10 @@
             , pandocArgs ? [ ]
             , template ? null
             , texlivePackages ? { }
+              # nixPackages will be accessible on the $PATH
             , nixPackages ? [ ]
+              # Nix package inputs will be accessible in the source directory by the derivation.name
+            , inputs ? [ ]
               # Pandoc Markdown extensions:
             , yamlMetadataBlock ? true
             , citeproc ? true
@@ -148,8 +168,11 @@
             in
             pkgs.stdenv.mkDerivation {
               name = nix-utils-lib.default name (builtins.baseNameOf src);
-              # TODO: merge src with inputs here.
-              inherit src;
+              src = nix-utils-lib.mergeDerivations {
+                packageSet = {
+                  "." = [(nix-utils-lib.srcDerivation {inherit src;})] ++ inputs;
+                };
+              };
               buildInputs = (
                 [
                   pkgs.librsvg # requried to including svg images
@@ -275,9 +298,11 @@
       templates = {
         default = {
           path = ./templates/markdown;
+          description = "Template for making documents as a Nix Flake";
         };
       };
     };
 
-  # TODO: allow input packages
+  # TODO: Fix fontconfig error
+  # Fontconfig error: No writable cache directories
 }

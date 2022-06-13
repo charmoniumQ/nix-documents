@@ -33,7 +33,7 @@ I can write comments with `<!-- like this -->`: <!-- like this -->
 
 I can reference a footnote with `blah[^footnote]`: blah[^footnote]
 
-So long as you define it like this `[^footnote]: ...`.
+So long as you define it like this `[^footnote]: This is the text of the footnote.`.
 
 [^footnote]: This is the text of the footnote.
 

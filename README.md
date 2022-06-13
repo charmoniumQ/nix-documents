@@ -90,11 +90,11 @@ I based this off of the excellent [pandoc-scholar], which adds extensions to Mar
 1. The syntax is prettier.
 2. You don't have to run the compiler multiple times to get the right output.
 3. Extensions can be written in Haskell or Lua, which are both "nicer" than the TeX language.
-4. The output is equally pretty, since Pandoc uses ConTeXt, XeTeX, or LaTeX under the hood.
+4. The output is equally pretty, since Pandoc uses ConTeXt, XeTeX, LuaTeX, or pdfLaTeX under the hood.
 5. You can still drop down to raw LaTeX from Markdown, if you must: either using LaTeX to generate a figure or embedding LaTeX commands in Markdown.
 6. You can output to more formats, including docx, EPUB, ODT, HTML, and others.
 
-See [tests/markdown/index.md]for an example which compiles to [examples/markdown-pdflatex.pdf].
+See [tests/markdown/index.md] for an example which compiles to [examples/markdown-pdflatex.pdf].
 
 [tests/markdown/index.md]: tests/markdown/index.md
 [examples/markdown-pdflatex.pdf]: examples/markdown-pdflatex.pdf
@@ -113,6 +113,9 @@ nix-documents.lib.${system}.graphviz-document {
 
 See [tests/graphviz/index.dot] for an example which compiles to [examples/graphviz.svg].
 
+[tests/graphviz/index.dot]: tests/graphviz/index.dot
+[examples/graphviz.svg]: examples/graphviz.svg
+
 ## plantuml-figure
 
 ```nix
@@ -126,8 +129,12 @@ nix-documents.lib.${system}.graphviz-document {
 
 See [tests/plantuml/index.puml] for an example which compiles to [examples/plantuml.svg].
 
+[tests/plantuml/index.puml]: tests/plantuml/index.puml
+[examples/plantuml.svg]: examples/plantuml.svg
+
 ## revealjs-presentation
 
 ## latex-document
 
 ## latex-figure
+
