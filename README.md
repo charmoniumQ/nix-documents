@@ -132,9 +132,6 @@ See [tests/plantuml/index.puml] for an example which compiles to [examples/plant
 [tests/plantuml/index.puml]: tests/plantuml/index.puml
 [examples/plantuml.svg]: examples/plantuml.svg
 
+## lualatex-document
+
 ## revealjs-presentation
-
-## latex-document
-
-## latex-figure
-
