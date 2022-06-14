@@ -16,6 +16,16 @@
           nix-utils-lib = nix-utils.lib.${system};
           nix-utils-pkgs = nix-utils.packages.${system};
           nix-lib = nixpkgs.lib;
+          checkUniqueGlob = glob: program: ''
+            num_files=0
+            for file in ${glob}; do
+              if [ $num_files -ne 0 ]; then
+                echo "Aborting: ${program} generated more than one ${glob} file"
+                exit 1
+              fi
+              num_files=1
+            done
+          '';
         in
         rec {
           lib = rec {
@@ -87,6 +97,7 @@
                     -o$tmp \
                     ${nix-lib.strings.escapeShellArgs plantumlArgs} \
                     $src/${main}
+                  ${checkUniqueGlob "$tmp/*" "plantuml"}
                   mv $tmp/* $out
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
@@ -208,11 +219,55 @@
                 phases = [ "unpackPhase" "buildPhase" ];
               };
 
+            xelatexDocument =
+              { src
+              , name ? builtins.baseNameOf src
+              , main ? "index.tex"
+              , texlivePackages ? { }
+              , outputFormat ? "pdf" # or dvi
+              , bibliography ? "none" # none, bibtex, or biber
+                # Nix packages will be accessible in the source directory by the derivation.name
+              , inputs ? [ ]
+              }:
+              let
+                mainStem = nix-lib.strings.removeSuffix ".tex" main;
+              in pkgs.stdenv.mkDerivation {
+                inherit name;
+                src = nix-utils-lib.mergeDerivations {
+                  packageSet = {
+                    "." = [ (nix-utils-lib.srcDerivation { inherit src; }) ] ++ inputs;
+                  };
+                };
+                buildInputs = [
+                  (pkgs.texlive.combine
+                    ({ inherit (pkgs.texlive) scheme-basic collection-xetex latexmk; }
+                     // (if bibliography == "none" then {} else { inherit (pkgs.texlive) collection-bibtexextra; })
+                     // texlivePackages
+                    ))
+                ];
+                FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
+                buildPhase = ''
+                  tmp=$(mktemp --directory)
+                  latexmk \
+                     -emulate-aux-dir\
+                     -auxdir=$tmp \
+                     -pdfxe \
+                     -outdir=$tmp \
+                     "-bibtex" \
+                     -diagnostics \
+                     ${mainStem}
+                  mkdir $out
+                  mv $tmp/${mainStem}.pdf $tmp/${mainStem}.aux $out
+                '';
+                phases = [ "unpackPhase" "buildPhase" ];
+              };
+
             lualatexDocument =
               { src
               , name ? builtins.baseNameOf src
               , main ? "index.tex"
-              , texlivePackages ? [ ]
+              , texlivePackages ? { }
+              , outputFormat ? "pdf" # or dvi
                 # Nix packages will be accessible in the source directory by the derivation.name
               , inputs ? [ ]
               }:
@@ -225,19 +280,19 @@
                 };
                 buildInputs = [
                   (pkgs.texlive.combine
-                    ({ inherit (pkgs.texlive) scheme-basic; } // texlivePackages))
+                    ({ inherit (pkgs.texlive) scheme-basic collection-luatex; } // texlivePackages))
                 ];
                 buildPhase = ''
                   tmp=$(mktemp --directory)
                   lualatex \
                     --interaction=nonstopmode \
                     --output-directory=$tmp \
+                    --output-format=${outputFormat} \
                     $src/${main}
                   mv $tmp/* $out
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
-
           };
 
           formatter = pkgs.nixpkgs-fmt;
@@ -288,6 +343,7 @@
                     src = ./tests/markdown;
                     pdfEngine = "pdflatex";
                     name = "markdown-pdflatex.pdf";
+                    # TODO: use texlivePackage
                   })
 
                   (lib.markdownDocument {
@@ -317,8 +373,21 @@
                   # (lib.lualatexDocument {
                   #   src = ./tests/latex;
                   #   name = "lualatex.pdf";
-                  #   texlivePackages = { inherit (pkgs.texlive) tree-dvips; };
+                  #   # TODO: use texlivePackage
                   # })
+
+                  # TODO: use texlivePackage
+                  (lib.xelatexDocument {
+                    src = ./tests/latex;
+                    name = "xelatex";
+                    # texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
+                  })
+
+                  (lib.xelatexDocument {
+                    src = ./tests/latex-with-bib;
+                    name = "xelatex-with-bib";
+                    # texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
+                  })
                 ]
               );
             })
@@ -340,5 +409,5 @@
   # TODO: Default name should have correct suffix
   # TODO: Example of using inputs
   # TODO: pygmentsTexFigure
-  # TODO: pdf 2 svg
+  # TODO: dvi2svg https://dvisvgm.de/
 }
