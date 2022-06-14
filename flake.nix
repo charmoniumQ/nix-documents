@@ -4,8 +4,7 @@
       url = "github:numtide/flake-utils";
     };
     nix-utils = {
-      url = "path:/home/sam/box/nix-utils";
-      # url = "github:charmoniumQ/nix-utils";
+      url = "github:charmoniumQ/nix-utils";
     };
   };
   outputs = { self, nixpkgs, flake-utils, nix-utils }:
