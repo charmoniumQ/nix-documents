@@ -4,10 +4,10 @@
 set -o errexit -o nounset -o xtrace -o pipefail
 
 nix fmt
-nix --show-trace --print-build-logs flake check
+nix --keep-going --show-trace --print-build-logs flake check
 
 rm --recursive --force examples
-nix --print-build-logs build .#examples
+nix --keep-going --show-trace --print-build-logs build .#examples
 cp --dereference --recursive result examples
 chmod --recursive u+rw,g+rw examples
 unlink result
