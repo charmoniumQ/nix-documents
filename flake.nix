@@ -231,6 +231,10 @@
               }:
               let
                 mainStem = nix-lib.strings.removeSuffix ".tex" main;
+                allTexlivePackages =
+                  { inherit (pkgs.texlive) scheme-basic collection-xetex latexmk; }
+                  // (if bibliography == "none" then {} else { inherit (pkgs.texlive) collection-bibtexextra; })
+                  // texlivePackages;
               in pkgs.stdenv.mkDerivation {
                 inherit name;
                 src = nix-utils-lib.mergeDerivations {
@@ -239,25 +243,25 @@
                   };
                 };
                 buildInputs = [
-                  (pkgs.texlive.combine
-                    ({ inherit (pkgs.texlive) scheme-basic collection-xetex latexmk; }
-                     // (if bibliography == "none" then {} else { inherit (pkgs.texlive) collection-bibtexextra; })
-                     // texlivePackages
-                    ))
+                  (pkgs.texlive.combine allTexlivePackages)
                 ];
                 FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
                 buildPhase = ''
-                  tmp=$(mktemp --directory)
-                  latexmk \
-                     -emulate-aux-dir\
-                     -auxdir=$tmp \
-                     -pdfxe \
-                     -outdir=$tmp \
-                     "-bibtex" \
-                     -diagnostics \
-                     ${mainStem}
                   mkdir $out
-                  mv $tmp/${mainStem}.pdf $tmp/${mainStem}.aux $out
+                  set +e
+                  latexmk \
+                     -pdfxe \
+                     -emulate-aux-dir \
+                     -outdir=$out \
+                     -auxdir=$out \
+                     ${mainStem}
+                  latexmk_status=$?
+                  set -e
+                  if [ $latexmk_status -ne 0 ]; then
+                    cat $out/${mainStem}.log
+                    echo "Aborting: Latexmk failed"
+                    exit $latexmk_status
+                  fi
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
@@ -380,14 +384,13 @@
                   (lib.xelatexDocument {
                     src = ./tests/latex;
                     name = "xelatex";
-                    # texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
+                    texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
                   })
 
-                  (lib.xelatexDocument {
-                    src = ./tests/latex-with-bib;
-                    name = "xelatex-with-bib";
-                    # texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
-                  })
+                  # (lib.xelatexDocument {
+                  #   src = ./tests/latex-with-bib;
+                  #   name = "xelatex-with-bib";
+                  # })
                 ]
               );
             })
