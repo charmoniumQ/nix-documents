@@ -219,13 +219,14 @@
                 phases = [ "unpackPhase" "buildPhase" ];
               };
 
-            xelatexDocument =
+            latexDocument =
               { src
               , name ? builtins.baseNameOf src
+              , texEngine ? "xelatex"
               , main ? "index.tex"
               , texlivePackages ? { }
-              , outputFormat ? "pdf" # or dvi
-              , bibliography ? "none" # none, bibtex, or biber
+              , bibliography ? true
+              , fullOutput ? false
                 # Nix packages will be accessible in the source directory by the derivation.name
               , inputs ? [ ]
               }:
@@ -233,9 +234,15 @@
                 mainStem = nix-lib.strings.removeSuffix ".tex" main;
                 allTexlivePackages =
                   { inherit (pkgs.texlive) scheme-basic collection-xetex latexmk; }
-                  // (if bibliography == "none" then {} else { inherit (pkgs.texlive) collection-bibtexextra; })
+                  // (if bibliography then { inherit (pkgs.texlive) collection-bibtexextra; } else { })
                   // texlivePackages;
-              in pkgs.stdenv.mkDerivation {
+                latexmkFlagForTexEngine = {
+                  "xelatex" = "-pdfxe";
+                  "lualatex" = "-pdflua";
+                  "pdflatex" = "-pdf";
+                };
+              in
+              pkgs.stdenv.mkDerivation {
                 inherit name;
                 src = nix-utils-lib.mergeDerivations {
                   packageSet = {
@@ -247,13 +254,13 @@
                 ];
                 FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
                 buildPhase = ''
-                  mkdir $out
+                  tmp=$(mktemp --directory)
                   set +e
                   latexmk \
-                     -pdfxe \
+                     ${builtins.getAttr texEngine latexmkFlagForTexEngine} \
                      -emulate-aux-dir \
-                     -outdir=$out \
-                     -auxdir=$out \
+                     -outdir=$tmp \
+                     -auxdir=$tmp \
                      ${mainStem}
                   latexmk_status=$?
                   set -e
@@ -262,41 +269,11 @@
                     echo "Aborting: Latexmk failed"
                     exit $latexmk_status
                   fi
+                  ${if fullOutput then "mv $tmp/* $out" else "mv $tmp/${mainStem}.pdf $out"}
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
 
-            lualatexDocument =
-              { src
-              , name ? builtins.baseNameOf src
-              , main ? "index.tex"
-              , texlivePackages ? { }
-              , outputFormat ? "pdf" # or dvi
-                # Nix packages will be accessible in the source directory by the derivation.name
-              , inputs ? [ ]
-              }:
-              pkgs.stdenv.mkDerivation {
-                inherit name;
-                src = nix-utils-lib.mergeDerivations {
-                  packageSet = {
-                    "." = [ (nix-utils-lib.srcDerivation { inherit src; }) ] ++ inputs;
-                  };
-                };
-                buildInputs = [
-                  (pkgs.texlive.combine
-                    ({ inherit (pkgs.texlive) scheme-basic collection-luatex; } // texlivePackages))
-                ];
-                buildPhase = ''
-                  tmp=$(mktemp --directory)
-                  lualatex \
-                    --interaction=nonstopmode \
-                    --output-directory=$tmp \
-                    --output-format=${outputFormat} \
-                    $src/${main}
-                  mv $tmp/* $out
-                '';
-                phases = [ "unpackPhase" "buildPhase" ];
-              };
           };
 
           formatter = pkgs.nixpkgs-fmt;
@@ -374,23 +351,26 @@
                     name = "markdown-context.pdf";
                   })
 
-                  # (lib.lualatexDocument {
-                  #   src = ./tests/latex;
-                  #   name = "lualatex.pdf";
-                  #   # TODO: use texlivePackage
-                  # })
-
-                  # TODO: use texlivePackage
-                  (lib.xelatexDocument {
+                  (lib.latexDocument {
                     src = ./tests/latex;
-                    name = "xelatex";
+                    name = "pdflatex.pdf";
+                    texEngine = "pdflatex";
                     texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
                   })
 
-                  # (lib.xelatexDocument {
-                  #   src = ./tests/latex-with-bib;
-                  #   name = "xelatex-with-bib";
+                  # (lib.latexDocument {
+                  #   src = ./tests/latex;
+                  #   name = "lualatex.pdf";
+                  #   texEngine = "lualatex";
+                  #   texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
                   # })
+
+                  (lib.latexDocument {
+                    src = ./tests/latex;
+                    name = "xelatex.pdf";
+                    texEngine = "xelatex";
+                    texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
+                  })
                 ]
               );
             })

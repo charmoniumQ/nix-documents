@@ -1,4 +1,5 @@
 \documentclass[12pt]{article}
+
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhead[L,C]{}
@@ -9,17 +10,20 @@
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{2pt}
 
+\usepackage[backend=biber]{biblatex}
+\addbibresource{myrefs.bib}
+
 \begin{document}
 \section{Dummy Text}
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec vel magna vitae urna rhoncus sollicitudin sed ac metus. In hac habitasse platea dictumst. Donec egestas laoreet enim, ut lobortis felis commodo non. Fusce quis pulvinar nibh, eu blandit metus. Aliquam id neque maximus, venenatis arcu ac, pellentesque ante. Sed ac risus ut est tincidunt vulputate quis vitae tortor. Sed dignissim leo eu magna semper, a malesuada leo sodales. Aenean eu fermentum justo. Sed orci lectus, suscipit vel libero vel, mattis laoreet erat. Aliquam et nunc sodales, convallis risus non, dapibus metus. Nullam est urna, fermentum in risus sit amet, finibus blandit diam. Nulla condimentum enim ac nisl dignissim, sed consequat leo rutrum. Fusce iaculis aliquam sem, eu hendrerit justo suscipit sed. Etiam placerat, magna id eleifend suscipit, mauris leo pellentesque orci, a rutrum sem dolor ut ipsum. Morbi lacinia laoreet magna, ac tincidunt leo bibendum ac.
+I doubt that there is any useful information here~\cite{wikibook}.
 
-Vestibulum vel ante id metus commodo accumsan. Mauris sodales est a erat ornare, rutrum venenatis libero efficitur. Quisque quis nunc vitae turpis tincidunt mattis at nec nunc. Donec id dui at lacus rhoncus bibendum. Aenean maximus lacinia ipsum. Etiam egestas non odio nec interdum. Nunc dapibus, odio vitae mattis mollis, elit tortor placerat nunc, porttitor fermentum sapien dui eget eros. Sed at elit porttitor, iaculis mi a, congue arcu. Vestibulum tincidunt, risus vehicula ultrices dapibus, mi sem blandit turpis, vitae malesuada quam ligula eu justo. In ultricies eros id laoreet tempus. Duis et consequat lorem, ac scelerisque lectus. Vivamus est dui, lacinia ac ipsum et, pharetra vestibulum sapien. Quisque maximus placerat iaculis.
+All we know is limited, apart from knowing the answer we all know. Or do we? Wombat and Koala have discovered some interesting things~\cite{wombat2016}.
 
-Suspendisse eu orci non nisi venenatis molestie. Nunc ultrices urna sed tristique suscipit. Praesent feugiat nibh eget enim fringilla rhoncus. Fusce dignissim nulla sit amet faucibus vehicula. Duis arcu libero, ornare sed mi eget, tempor viverra nisl. In eget purus id risus consectetur facilisis. Aliquam aliquam, nunc id fermentum cursus, nunc enim ultricies felis, et commodo diam tortor eu ante. Phasellus placerat odio sit amet sem molestie, quis iaculis nulla dictum. Sed ornare aliquam turpis, scelerisque porttitor velit egestas volutpat.
+Some people are too nosy. What can happen to them is described by Laura Lion~\cite[9]{lion2010}.
 
-Aliquam erat volutpat. Curabitur fermentum elit quis est lobortis aliquam. In eleifend volutpat sapien, sed vulputate orci eleifend sit amet. Praesent et est ut justo commodo euismod at eu ipsum. Suspendisse id felis at felis fermentum sollicitudin. Etiam lacinia erat a feugiat bibendum. Vestibulum sodales vestibulum mauris sit amet rhoncus. Quisque massa lorem, cursus vitae purus ut, consectetur tempus enim.
+%https://en.wikibooks.org/wiki/LaTeX/Bibliographies_with_biblatex_and_biber
 
-Sed scelerisque tincidunt venenatis. Etiam quis rhoncus orci. Vestibulum scelerisque, nisi quis scelerisque laoreet, lorem nisl molestie odio, eget ultricies ipsum mauris id elit. Mauris convallis ligula est, a sagittis ligula laoreet in. Etiam hendrerit, mi eu porta sagittis, risus orci ullamcorper ligula, ut blandit purus sem sit amet sapien. Nullam ornare nulla eu condimentum elementum. Nam porta ipsum condimentum, convallis lorem ac, ornare eros. Maecenas sed pulvinar odio, ac lacinia lorem. Donec in ex in diam consequat auctor. In eget mi in odio posuere molestie nec molestie ipsum. Integer vehicula elementum efficitur. Fusce eu metus eget quam auctor gravida et et lorem. Nunc fermentum, felis at finibus placerat, turpis erat laoreet neque, a placerat nisl nibh non arcu. Suspendisse efficitur lectus arcu, id tincidunt diam condimentum vitae. 
+\printbibliography
 
 \end{document}
