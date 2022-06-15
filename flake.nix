@@ -226,6 +226,7 @@
               , texlivePackages ? { }
               , bibliography ? true
               , fullOutput ? false
+              , Werror ? false
                 # Nix packages will be accessible in the source directory by the derivation.name
               , inputs ? [ ]
               }:
@@ -260,6 +261,7 @@
                      -emulate-aux-dir \
                      -outdir=$tmp \
                      -auxdir=$tmp \
+                     ${if Werror then "-Werror" else ""} \
                      ${mainStem}
                   latexmk_status=$?
                   set -e
