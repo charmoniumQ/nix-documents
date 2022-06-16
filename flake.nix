@@ -34,17 +34,10 @@
               { src
               , name ? builtins.baseNameOf src
               , main ? "index.dot"
-
-                # See https://graphviz.org/docs/outputs/
               , outputFormat ? "svg"
-
-                # See https://graphviz.org/docs/layouts/
               , layoutEngine ? "dot"
-
               , vars ? { }
               , graphvizArgs ? [ ]
-
-                # Nix packages will be accessible in the source directory by the derivation.name
               , inputs ? [ ]
               }:
               pkgs.stdenv.mkDerivation {
@@ -60,11 +53,11 @@
                      -T${outputFormat} \
                      ${nix-lib.strings.escapeShellArgs (
                        nix-lib.attrsets.mapAttrsToList
-                         (name: value: "-G${name}=${value}")
+                         (name: value: nix-lib.strings.escape "-G${name}=${value}")
                          vars)} \
                      ${nix-lib.strings.escapeShellArgs graphvizArgs} \
                      -o$out \
-                     $src/${main}
+                     $src/${nix-lib.strings.escape main}
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
@@ -96,7 +89,7 @@
                     -t${outputFormat} \
                     -o$tmp \
                     ${nix-lib.strings.escapeShellArgs plantumlArgs} \
-                    $src/${main}
+                    $src/${nix-lib.strings.escape main}
                   ${checkUniqueGlob "$tmp/*" "plantuml"}
                   mv $tmp/* $out
                 '';
@@ -108,9 +101,9 @@
               { src
               , name ? null
               , main ? "index.md"
-              , pdfEngine ? "context"
-              , outputFormat ? "pdf" # passed to Pandoc
-              , cslStyle ? "acm-sig-proceedings" # from CSL styles repo
+              , pdfEngine ? "xelatex"
+              , outputFormat ? "pdf"
+              , cslStyle ? "acm-sig-proceedings"
               , pandocArgs ? [ ]
               , template ? null
               , texlivePackages ? { }
@@ -121,10 +114,14 @@
                 # Pandoc Markdown extensions:
               , yamlMetadataBlock ? true
               , citeproc ? true
-              , texMathDollars ? true
-              , rawTex ? true
+              , texMathDoubleBackslash  ? true
+              , hardLineBreaks ? false
+              , emoji ? true
+              , footnotes ? true
+              , rawTex ? false
               , multilineTables ? true
-                # pandoc-lua-filters to apply:
+              , tableCaptions ? true
+
               , abstractToMeta ? true
               , pagebreak ? true
               , pandocCrossref ? true
@@ -135,9 +132,13 @@
                   "markdown"
                   + (if yamlMetadataBlock then "+yaml_metadata_block" else "")
                   + (if citeproc then "+citations" else "")
-                  + (if texMathDollars then "+tex_math_dollars" else "")
+                  + (if texMathDoubleBackslash then "+tex_math_double_backslash" else "")
+                  + (if hardLineBreaks then "+hard_line_breaks" else "")
+                  + (if footnotes then "+footnotes" else "")
                   + (if rawTex then "+raw_tex" else "")
                   + (if multilineTables then "+multiline_tables" else "")
+                  + (if tableCaptions then "+table_captions" else "")
+                  + (if strikeout then "+strikeout" else "")
                 ;
                 pandocLuaFiltersPath = "${pkgs.pandoc-lua-filters}/share/pandoc/filters";
                 pdfEngineTexlivePackages = {
@@ -201,6 +202,12 @@
                 );
                 FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
                 buildPhase = ''
+                  if [ ! -f packages.citation-style-language-styles}/${cslStyle}.csl ]; then
+                    echo 'Aborting: Don't know the CSL style ${cslStyle}'
+                    echo 'Choose from https://github.com/citation-style-language/styles'
+                    echo 'without the `.csl`'
+                    exit 1
+                  fi
                   ${pkgs.pandoc}/bin/pandoc \
                     --from=${pandocMarkdownWithExtensions} \
                     ${if abstractToMeta then "--lua-filter=${pandocLuaFiltersPath}/abstract-to-meta.lua" else ""} \
@@ -214,7 +221,7 @@
                     --output=$out \
                     ${if builtins.isNull template then "" else "--template=${template}"} \
                     ${nix-lib.strings.escapeShellArgs pandocArgs} \
-                    ${main}
+                    ${nix-lib.strings.escape main}
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
@@ -261,15 +268,16 @@
                      -emulate-aux-dir \
                      -outdir=$tmp \
                      -auxdir=$tmp \
-                     ${mainStem}
+                     ${if Werror then "-Werror" else ""} \
+                     ${nix-lib.strings.escape mainStem}
                   latexmk_status=$?
                   set -e
                   if [ $latexmk_status -ne 0 ]; then
-                    cat $out/${mainStem}.log
+                    cat $out/${nix-lib.strings.escape mainStem}.log
                     echo "Aborting: Latexmk failed"
                     exit $latexmk_status
                   fi
-                  ${if fullOutput then "mv $tmp/* $out" else "mv $tmp/${mainStem}.pdf $out"}
+                  ${if fullOutput then "mv $tmp/* $out" else "mv $tmp/${nix-lib.strings.escape mainStem}.pdf $out"}
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
@@ -301,78 +309,6 @@
               rev = "3602c18c16d51ff5e4996c2c7da24ea2cc5e546c";
               hash = "sha256-X+iRAt2Yzp1ePtmHT5UJ4MjwFVMu2gixmw9+zoqPq20=";
               name = "citation-style-language-styles";
-            })
-
-            (nix-utils-lib.mergeDerivations {
-              name = "examples";
-              packageSet = nix-utils-lib.packageSet (
-                (if system == "i686-linux" then [ ] else [
-                  (lib.plantumlFigure {
-                    src = ./tests/plantuml;
-                    name = "plantuml.svg";
-                  })
-                ]) ++ [
-                  (lib.graphvizFigure {
-                    src = ./tests/graphviz;
-                    name = "graphviz.svg";
-                    vars = {
-                      hello = "world";
-                    };
-                  })
-
-                  (lib.markdownDocument {
-                    src = ./tests/markdown;
-                    pdfEngine = "pdflatex";
-                    name = "markdown-pdflatex.pdf";
-                    # TODO: use texlivePackage
-                  })
-
-                  (lib.markdownDocument {
-                    src = ./tests/markdown;
-                    pdfEngine = "xelatex";
-                    name = "markdown-xelatex.pdf";
-                  })
-
-                  # (lib.markdownDocument {
-                  #   src = ./tests/markdown;
-                  #   pdfEngine = "lualatex";
-                  #   name = "markdown-document-lualatex.pdf";
-                  # })
-
-                  # (lib.markdownDocument {
-                  #   src = ./tests/markdown;
-                  #   pdfEngine = "tectonic";
-                  #   name = "markdown-document-tectonic.pdf";
-                  # })
-
-                  (lib.markdownDocument {
-                    src = ./tests/markdown;
-                    pdfEngine = "context";
-                    name = "markdown-context.pdf";
-                  })
-
-                  (lib.latexDocument {
-                    src = ./tests/latex;
-                    name = "pdflatex.pdf";
-                    texEngine = "pdflatex";
-                    texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
-                  })
-
-                  # (lib.latexDocument {
-                  #   src = ./tests/latex;
-                  #   name = "lualatex.pdf";
-                  #   texEngine = "lualatex";
-                  #   texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
-                  # })
-
-                  (lib.latexDocument {
-                    src = ./tests/latex;
-                    name = "xelatex.pdf";
-                    texEngine = "xelatex";
-                    texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
-                  })
-                ]
-              );
             })
           ];
 

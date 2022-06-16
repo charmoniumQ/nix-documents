@@ -41,12 +41,14 @@ $ # To start a new flake,
 $ nix flake init --template github.com:charmoniumQ/nix-documents
 ```
 
-## A note on composition
+## Generating subfigures
 
 There are some plugins that let one embed one document in another. For example [pandoc-graphviz] lets one render Graphviz code embedded in a pandoc document. I prefer to do this separately, with a standalone Graphviz file and a pandoc file that just has an image include. Nix makes it easy for one document to depend on another. This is advantages for two reasons:
 
 1. It enables incremental compilation; if the Graphviz code did not change but other parts of the pandoc code did, Graphviz does not need to be invoked.
 2. It is more flexible. There may be some other compiler for which there is no pandoc plugin, or there may be some option you need to set on Graphviz that the plugin doesn't support.
+
+These packages support an `inputs` parameter, which should be a list of derivations (e.g. other documents or figures from this flake). Those will be compiled and placed in the source-tree under their derivation name. Make sure the name includes the `.svg` or whatever suffix.
 
 [pandoc-graphviz]: https://github.com/Hakuyume/pandoc-filter-graphviz
 
@@ -100,6 +102,39 @@ See [tests/markdown/index.md] for an example which compiles to [examples/markdow
 [examples/markdown-pdflatex.pdf]: examples/markdown-pdflatex.pdf
 [pandoc-scholar]: https://github.com/pandoc-scholar/pandoc-scholar
 
+## latex-document
+
+The relationship between the pdfLaTeX, LuaLaTex, XeLaTeX [[1], [2]]. If you are unsure, just use XeLaTeX.
+
+[1]: https://tex.stackexchange.com/questions/36/differences-between-luatex-context-and-xetex
+[2]: https://www.overleaf.com/learn/latex/Articles/The_TeX_family_tree%3A_LaTeX%2C_pdfTeX%2C_XeTeX%2C_LuaTeX_and_ConTeXt
+
+To use a TeXlive package, find its name in [CTAN] and in check that it exists in [Nix TeXlive]. Then add it to `texlivePackages`
+
+```nix
+lib.latexDocument {
+  src = ./tests/latex;
+
+  name = "xelatex.pdf";
+
+  # xelatex is defualt. Also try "pdflatex" or "lualatex"
+
+  texEngine = "xelatex";
+
+  # Optional if none
+  texlivePackages = {
+    inherit (pkgs.texlive)
+      fancyhdr
+      lastpage
+      # other packages here.
+    ;
+  };
+};
+```
+
+[Nix TeXlive]: https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/tools/typesetting/tex/texlive/pkgs.nix
+[CTAN]: https://ctan.org/
+
 ## graphviz-figure
 
 ```nix
@@ -132,6 +167,6 @@ See [tests/plantuml/index.puml] for an example which compiles to [examples/plant
 [tests/plantuml/index.puml]: tests/plantuml/index.puml
 [examples/plantuml.svg]: examples/plantuml.svg
 
-## lualatex-document
-
 ## revealjs-presentation
+
+## pygments-listing
