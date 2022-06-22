@@ -1,30 +1,106 @@
 ---
-# Fields described at:
-# https://pandoc.org/MANUAL.html
-title: A Test
-author: Samuel Grayson
-standalone: yes # call \maketitle
-colorlinks: yes
-number-sections: yes
-header-includes: |
-- |
-  ```{=latex}
-\usepackage{fancyhdr}
-\pagestyle{fancy}
-\fancyhead[L,C]{}
-\fancyhead[R]{\textbf{The performance of new graduates}}
-\fancyfoot[L]{From: K. Grant}
-\fancyfoot[C]{To: Dean A. Smith}
-\fancyfoot[R]{\thepage}
-\renewcommand{\headrulewidth}{0.4pt}
-\renewcommand{\footrulewidth}{2pt}
-  ```
+# https://pandoc.org/MANUAL.html#general-options-1
+from: markdown+emoji
+# For all inputs, see: https://pandoc.org/MANUAL.html#general-options
+# For Markdown variants, see: https://pandoc.org/MANUAL.html#markdown-variants
+# For extensions, see: https://pandoc.org/MANUAL.html#extensions
+verbosity: INFO
+fail-if-warnings: yes
 
-# bib settings
-bibliography: main.bib
+# https://pandoc.org/MANUAL.html#reader-options-1
+# filters:
+
+# https://pandoc.org/MANUAL.html#general-writer-options-1
+standalone: yes
+# template: /path/to/template.tex here
+dpi: 300
+table-of-contents: no
+strip-comments: yes
+
+# https://pandoc.org/MANUAL.html#citation-rendering-1
 citeproc: yes
+cite-method: citeproc # or natbib or biblatex
+# cite-method can be citeproc, natbib, or biblatex. This only affects LaTeX output. If you want to use citeproc to format citations, you should also set ‘citeproc: true’.
+bibliography: main.bib
+#  csl: ${CITATION_STYLE_LANGUAGE_STYLES}/acm-sig-proceedings.csl
+#  citation-abbreviations: ab.json
 link-citations: yes # in-text citation -> biblio entry
 link-bibliography: yes # URLs in biblio
+notes-after-punctuation: yes
+
+# https://pandoc.org/MANUAL.html#metadata-variables
+title: The document title
+institute:
+  - id: acme
+    name: Acme Corporation
+  - id: federation
+    name: Federation of Planets
+author:
+- email: 'jane.doe\@example.edu'
+  id: Jane Doe
+  name: Jane Doe
+  institute: [1, 2]
+- id: 'John Q. Doe'
+  name: 'John Q. Doe'
+  institute: [2]
+date: 2022-06-18
+subtitle: The document subtitle
+lang: en-US
+dir: ltr
+standalone: yes # setting to yes calls \maketitle
+number-sections: yes
+
+# https://pandoc.org/MANUAL.html#variables-for-latex
+documentclass: article #scrartcl
+hyperrefoptions:
+- linktoc=all
+- pdfwindowui
+- pdfpagemode=FullScreen
+indent: yes
+pagestyle: plain
+papersize: letter
+lof: no # list of figures
+lot: no # list of tables
+thanks: no
+toc: no
+# toc-depth: 
+filecolor: blue
+citecolor: blue
+urlcolor: blue
+toccolor: blue
+
+# HTML and LaTeX options
+fontsize: 12
+# mainfont: 
+# sansfont:
+# monofont:
+# mathfont:
+colorlinks: yes
+linkcolor: blue
+linestretch: 1.25
+margin-left: 1.5in
+margin-right: 1.5in
+margin-top: 1.5in
+margin-bottom: 1.5in
+
+header-includes:
+- |
+  ```{=latex}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhead[C]{Fancyheader}
+  \fancyhead[L,R]{}
+  \fancyfoot[L,R]{}
+  \fancyfoot[C]{\thepage}
+  ```
+# include-before: # before body
+# include-after: # after body
+
+# https://pandoc.org/MANUAL.html#math-rendering-in-html-1
+html-math-method:
+  method: katex
+# document-css: test.css
+
 ---
 
 # Abstract
@@ -35,75 +111,85 @@ The text written under a heading "Abstract" is treated specially by the template
 
 First, note the YAML block header which precedes the Markdown document. This replaces `\author`, `\date`, and others.
 
-I can cite things in a BibTeX file from the YAML block using the `[@bibtex_key]`: [@collberg2016repeatability]
+- I can cite things in a BibTeX file from the YAML block using the `[@bibtex_key]`: [@collberg]
 
-Note that the citation style format can be changed in the compile flags or Nix flake.
+  - Note that the citation style format can be changed in the compile flags or Nix flake.
 
-However, Pandoc also supports [Citation Style Language][CSL] data JSON, which is much cleaner. Note that Zotero can export CSL data.
+  - However, Pandoc also supports [Citation Style Language][CSL] data JSON, which is much cleaner. Note that Zotero can export CSL data.
 
-[CSL]: https://citationstyles.org/
+  - I can even use [CiTO vocabulary] using `[@cito_prop:bibtex_key]`: [@evidence:collberg]
 
-I can even use [CiTO vocabulary] using `[@cito_prop:bibtex_key]`: [@evidence:collberg2016repeatability]
+- I can write comments with `<!-- like this -->`: <!-- like this -->
 
-[CiTO vocabulary]: https://sparontologies.github.io/cito/current/cito.html
+- I can reference a footnote with `blah[^footnote]`: blah[^footnote]
 
-I can write comments with `<!-- like this -->`: <!-- like this -->
-
-I can reference a footnote with `blah[^footnote]`: blah[^footnote]
-
-So long as you define it like this `[^footnote]: This is the text of the footnote.`.
-
-[^footnote]: This is the text of the footnote.
-
-I can write code with three backticks:
+- I can write code with three backticks:
 
     ```python
     print("code works like this")
     ```
+<!--
+- Inline equations mode (with tex_math_double_backslash extension)  `\\(\int x^2 \, \mathrm{d}x\\)`: `\\(\int x^2 \, \mathrm{d}x\\)`
 
-```python
-print("code works like this")
-```
+- Display equations mode  `\\[\int x^2 \, \mathrm{d}x \\]`: `\\[\int x^2 \, \mathrm{d}x\\]`
+-->
 
-Of course, I can get equations with dollar signs `\\(\int x^2 \, \mathrm{d}x\\)`: \\(\int x^2 \, \mathrm{d}x\\)
+- Figures generated from Nix inputs can be included by their derivation's name `![Include a generated figure](graphviz.svg){#fig:label}`:
 
-Same with `\\[\int x^2 \, \mathrm{d}x \\]`:
+![Include a generated figure](graphviz.svg){#fig:label width=25%}
 
-\\[\int x^2 \, \mathrm{d}x\\]
+  - I can reference images like this `[@fig:label]` or `[Fig. @fig:label]`: [@fig:label] or [Fig. @fig:label]
 
-I can reference images like this `[@fig:label]` or `[Fig. @fig:label]`: [@fig:label] or [Fig. @fig:label]
+  - See [pandoc-crossref], which can also reference tables and equations.
 
-As long as you define it like `![Caption goes here](Wikipedia-logo-v2.png){#fig:label}`:
+- One can use `(@) item` or `(@label) item` to create a numbered list without stating the numbers explicitly, as in traditional Markdown.
 
-![Caption goes here](Wikipedia-logo-v2.png){#fig:label}
+  (@) First, ...
+  (@label) Second, ...
 
-![Include a generated figure](graphviz.svg)
-
-See [pandoc-crossref], which can also reference tables and equations.
-
-[pandoc-crossref]: https://lierdakil.github.io/pandoc-crossref/
-
-One can use `(@) item` or `(@label) item` to create a numbered list without stating the numbers explicitly, as in traditional Markdown.
-
-(@) First, ...
-(@) Second, ...
-(@this-one) Third, ...
-
-Then one can use `(@label)` (@this-one) to refer to the number of a specific item.
+  - Then one can use `@label` to refer to the number of a specific item: @label
 
 - `[Small caps]{.smallcaps}`: [Small caps]{.smallcaps}
+
 - `[Underline]{.underline}`: [Underline]{.underline}
-- `[Colored]{.color="red"}`: [Colored]{.color="red"}
 
-See the [Pandoc manual] and [pandoc-lua-filters] for more extensions.
+- \textcolor{red}{red text}
 
-[pandoc manual]: https://pandoc.org/MANUAL.html
-[pandoc-lua-filters]: https://github.com/pandoc/lua-filters
+- Raw `\LaTeX`: \LaTeX
+
+- Raw `<button>HTML</button>`: <button>HTML</button>
+
+- Emoji like (with emoji extension) `:smile:`: :smile:
+
+- See the [Pandoc manual] and [pandoc-lua-filters] for more extensions.
+
+Term 1
+
+:   Definition 1
+
+Term 2 with *inline markup*
+
+:   Definition 2
+
+        { some code, part of Definition 2 }
+
+    Third paragraph of definition 2.
 
 I can get a new page with `\newpage`:
 
 \newpage
 
-And I like to put the `# Citations` header at the end of the document:
+[^footnote]: This is the text of the footnote.
 
-# Citations
+[pandoc-crossref]: https://lierdakil.github.io/pandoc-crossref/
+[CSL]: https://citationstyles.org/
+[CiTO vocabulary]: https://sparontologies.github.io/cito/current/cito.html
+[pandoc manual]: https://pandoc.org/MANUAL.html
+[pandoc-lua-filters]: https://github.com/pandoc/lua-filters
+
+# References
+
+::: {#refs}
+:::
+
+Post reference stuff
