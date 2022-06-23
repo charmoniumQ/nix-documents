@@ -108,12 +108,18 @@
               , date ? null
               , metadata-files ? []
               , metadata-vars ? {}
+              , filters ? [
+                "${pkgs.pandoc-lua-filters}/share/pandoc/filters/abstract-to-meta.lua"
+                "${pkgs.pandoc-lua-filters}/share/pandoc/filters/pagebreak.lua"
+                "${pkgs.pandoc-lua-filters}/share/pandoc/filters/cito.lua"
+                "${pkgs.haskellPackages.pandoc-crossref}/bin/pandoc-crossref"
+                "citeproc"
+              ]
               , texlivePackages ? { }
               # nixPackages will be accessible on the $PATH
               , nixPackages ? [ ]
               # Nix package inputs will be accessible in the source directory by the derivation.name
               , inputs ? [ ]
-              , pandocArgs ? [ ]
               }:
               let
                 pdfEngineTexlivePackages = rec {
@@ -165,6 +171,21 @@
                 pdfEngineNixPackages = {
                   tectonic = [ pkgs.tectonic ];
                 };
+                toPandocFilterArg = filter:
+                  if builtins.isAttrs filter
+                  then nix-utils-lib.getAttrOr {
+                    json = "--filter=${filter.path}";
+                    lua = "--lua-filter=${filter.path}";
+                    citeproc = "--citeproc";
+                  } filter.type (throw "Unsupported filter type ${filter.type}")
+                  else
+                    if filter == "citeproc"
+                    then "--citeproc"
+                    else
+                      if nix-lib.strings.hasSuffix ".lua" filter
+                      then "--lua-filter=${filter}"
+                      else "--filter=${filter}"
+                ;
               in
               pkgs.stdenv.mkDerivation {
                 inherit name;
@@ -189,32 +210,26 @@
                   ++ (nix-utils-lib.getAttrOr pdfEngineNixPackages pdfEngine [ ])
                 );
                 FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
-                PANDOC_LUA_FILTERS = "${pkgs.pandoc-lua-filters}";
                 buildPhase = ''
                   ${
                     if builtins.isNull date
                     then ""
                     else "export SOURCE_DATE_EPOCH=${builtins.toString date}"}
-                  ${pkgs.pandoc}/bin/pandoc \
-                    --pdf-engine=${pdfEngine} \
-                    --to=${outputFormat} \
-                    --output=$out \
-                    ${nix-lib.strings.escapeShellArgs
-                      (builtins.map
-                        (mfile: "--metadata-file=${mfile}")
-                        metadata-files)} \
-                    ${nix-lib.strings.escapeShellArgs
-                      (nix-lib.attrsets.mapAttrsToList
-                        (mvar: mval: "--metadata=${mvar}:${mval}")
-                        metadata-vars)} \
-                    ${nix-lib.strings.escapeShellArgs pandocArgs} \
-                    --lua-filter=./examples/scholarly-metadata.lua \
-                    --lua-filter=/nix/store/ygf9x5dj50vhjl0dmxpb6xicc702s28z-pandoc-lua-filters-2021-11-05/share/pandoc/filters/abstract-to-meta.lua \
-                    --lua-filter=/nix/store/ygf9x5dj50vhjl0dmxpb6xicc702s28z-pandoc-lua-filters-2021-11-05/share/pandoc/filters/pagebreak.lua \
-                    --lua-filter=/nix/store/ygf9x5dj50vhjl0dmxpb6xicc702s28z-pandoc-lua-filters-2021-11-05/share/pandoc/filters/cito.lua \
-                    --filter=${pkgs.haskellPackages.pandoc-crossref}/bin/pandoc-crossref \
-                    --citeproc \
-                    ${nix-lib.strings.escapeShellArg main}
+                  ${nix-lib.strings.escapeShellArgs (builtins.concatLists [
+                    [
+                      "${pkgs.pandoc}/bin/pandoc"
+                      "--pdf-engine=${pdfEngine}"
+                      "--to=${outputFormat}"
+                      main
+                    ]
+                    (builtins.map
+                      (mfile: "--metadata-file=${mfile}")
+                      metadata-files)
+                    (nix-lib.attrsets.mapAttrsToList
+                      (mvar: mval: "--metadata=${mvar}:${mval}")
+                      metadata-vars)
+                    (builtins.map toPandocFilterArg filters)
+                  ])} --output=$out
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };

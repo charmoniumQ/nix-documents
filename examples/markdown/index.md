@@ -7,9 +7,6 @@ from: markdown+emoji
 verbosity: INFO
 fail-if-warnings: yes
 
-# https://pandoc.org/MANUAL.html#reader-options-1
-# filters:
-
 # https://pandoc.org/MANUAL.html#general-writer-options-1
 standalone: yes
 # template: /path/to/template.tex here
@@ -30,19 +27,9 @@ notes-after-punctuation: yes
 
 # https://pandoc.org/MANUAL.html#metadata-variables
 title: The document title
-institute:
-  - id: acme
-    name: Acme Corporation
-  - id: federation
-    name: Federation of Planets
 author:
-- email: 'jane.doe\@example.edu'
-  id: Jane Doe
-  name: Jane Doe
-  institute: [1, 2]
-- id: 'John Q. Doe'
-  name: 'John Q. Doe'
-  institute: [2]
+- Jane Doe
+- John Q. Doe
 date: 2022-06-18
 subtitle: The document subtitle
 lang: en-US

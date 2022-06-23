@@ -88,12 +88,6 @@
                 inputs = [
                   self.packages.${system}."graphviz.svg"
                 ];
-
-                # Should be a list of strings
-                # Avoid using this option if you can.
-                # Instead use dedicated Nix parameters or set metadata variables in YAML
-                # This is the default
-                pandocArgs = [ ];
               })
 
 
