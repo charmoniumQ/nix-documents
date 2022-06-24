@@ -41,49 +41,20 @@ $ # To start a new flake,
 $ nix flake init --template github.com:charmoniumQ/nix-documents
 ```
 
-## A note on composition
+## Generating subfigures
 
 There are some plugins that let one embed one document in another. For example [pandoc-graphviz] lets one render Graphviz code embedded in a pandoc document. I prefer to do this separately, with a standalone Graphviz file and a pandoc file that just has an image include. Nix makes it easy for one document to depend on another. This is advantages for two reasons:
 
 1. It enables incremental compilation; if the Graphviz code did not change but other parts of the pandoc code did, Graphviz does not need to be invoked.
 2. It is more flexible. There may be some other compiler for which there is no pandoc plugin, or there may be some option you need to set on Graphviz that the plugin doesn't support.
 
+These packages support an `inputs` parameter, which should be a list of derivations (e.g. other documents or figures from this flake). Those will be compiled and placed in the source-tree under their derivation name. Make sure the name includes the `.svg` or whatever suffix.
+
 [pandoc-graphviz]: https://github.com/Hakuyume/pandoc-filter-graphviz
 
 <!-- TODO: Show flake.nix composition -->
 
 ## markdown-document
-
-This will compile your Markdown document:
-
-```nix
-nix-documents.lib.${system}.markdown-document {
-  src = ./.;
-
-  # Choose from this repo, without the .csl:
-  # [1]: https://github.com/citation-style-language/styles
-  csl-style = "acm-sig-proceedings";
-
-  # This is the default and can be omitted.
-  main = "index.md";
-
-  # This is the default and can be omitted.
-  # See Pandoc's options here:
-  # https://pandoc.org/MANUAL.html#option--to
-  output = "pdf";
-
-  # Omit if not needed
-  texlive-packages = {
-    inherit (pkgs.texlive) physics tikz;
-  };
-
-  # See Pandoc's default template
-  # https://github.com/jgm/pandoc-templates/blob/master/default.latex
-  # And Pandoc manula on templating
-  # https://pandoc.org/MANUAL.html#templates
-  template = "template.tex";
-}
-```
 
 I based this off of the excellent [pandoc-scholar], which adds extensions to Markdown that make it amenable to academic writing (e.g. citation counting). Writing Markdown has several advantages to writing raw LaTeX:
 
@@ -94,44 +65,38 @@ I based this off of the excellent [pandoc-scholar], which adds extensions to Mar
 5. You can still drop down to raw LaTeX from Markdown, if you must: either using LaTeX to generate a figure or embedding LaTeX commands in Markdown.
 6. You can output to more formats, including docx, EPUB, ODT, HTML, and others.
 
-See [tests/markdown/index.md] for an example which compiles to [examples/markdown-pdflatex.pdf].
+See [examples-src/markdown-bells-and-whistles/index.md] for an example which compiles to [examples/markdown-xelatex.pdf] or [examples/markdown-context.pdf].
 
-[tests/markdown/index.md]: tests/markdown/index.md
-[examples/markdown-pdflatex.pdf]: examples/markdown-pdflatex.pdf
+[examples-src/markdown-bells-and-whistles/index.md]: examples-src/markdown-bells-and-whistles/index.md
+[examples/markdown-xelatex.pdf]: examples/markdown-xelatex.pdf
 [pandoc-scholar]: https://github.com/pandoc-scholar/pandoc-scholar
+
+## latex-document
+
+The relationship between the pdfLaTeX, LuaLaTex, XeLaTeX [[1], [2]]. If you are unsure, just use XeLaTeX.
+
+[1]: https://tex.stackexchange.com/questions/36/differences-between-luatex-context-and-xetex
+[2]: https://www.overleaf.com/learn/latex/Articles/The_TeX_family_tree%3A_LaTeX%2C_pdfTeX%2C_XeTeX%2C_LuaTeX_and_ConTeXt
+
+To use a TeXlive package, find its name in [CTAN] and in check that it exists in [Nix TeXlive]. Then add it to `texlivePackages`
+
+[Nix TeXlive]: https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/tools/typesetting/tex/texlive/pkgs.nix
+[CTAN]: https://ctan.org/
 
 ## graphviz-figure
 
-```nix
-nix-documents.lib.${system}.graphviz-document {
-  src = ./.;
+See [examples-src/graphviz/index.dot] for an example which compiles to [examples/graphviz.svg].
 
-  # This is the default and can be omitted.
-  main = "index.puml";
-}
-```
-
-See [tests/graphviz/index.dot] for an example which compiles to [examples/graphviz.svg].
-
-[tests/graphviz/index.dot]: tests/graphviz/index.dot
+[examples-src/graphviz/index.dot]: examples-src/graphviz/index.dot
 [examples/graphviz.svg]: examples/graphviz.svg
 
 ## plantuml-figure
 
-```nix
-nix-documents.lib.${system}.graphviz-document {
-  src = ./.;
+See [examples-src/plantuml/index.puml] for an example which compiles to [examples/plantuml.svg].
 
-  # This is the default and can be omitted.
-  main = "index.dot";
-}
-```
-
-See [tests/plantuml/index.puml] for an example which compiles to [examples/plantuml.svg].
-
-[tests/plantuml/index.puml]: tests/plantuml/index.puml
+[examples-src/plantuml/index.puml]: examples-src/plantuml/index.puml
 [examples/plantuml.svg]: examples/plantuml.svg
 
-## lualatex-document
-
 ## revealjs-presentation
+
+## pygments-listing
