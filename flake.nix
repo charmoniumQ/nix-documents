@@ -115,6 +115,7 @@
                 "${pkgs.haskellPackages.pandoc-crossref}/bin/pandoc-crossref"
                 "citeproc"
               ]
+              , csl ? "${self.packages.${system}.citation-style-language-styles}/ieee-with-url.csl"
               , texlivePackages ? { }
               # nixPackages will be accessible on the $PATH
               , nixPackages ? [ ]
@@ -220,6 +221,7 @@
                       "${pkgs.pandoc}/bin/pandoc"
                       "--pdf-engine=${pdfEngine}"
                       "--to=${outputFormat}"
+                      "--csl=${csl}"
                       main
                     ]
                     (builtins.map

@@ -19,8 +19,7 @@ citeproc: yes
 cite-method: citeproc # or natbib or biblatex
 # cite-method can be citeproc, natbib, or biblatex. This only affects LaTeX output. If you want to use citeproc to format citations, you should also set ‘citeproc: true’.
 bibliography: main.bib
-#  csl: ${CITATION_STYLE_LANGUAGE_STYLES}/acm-sig-proceedings.csl
-#  citation-abbreviations: ab.json
+#citation-abbreviations: ab.json
 link-citations: yes # in-text citation -> biblio entry
 link-bibliography: yes # URLs in biblio
 notes-after-punctuation: yes
