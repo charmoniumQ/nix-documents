@@ -49,16 +49,16 @@
                 };
                 FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
                 buildPhase = ''
-                    ${pkgs.graphviz}/bin/dot \
-                     -K${layoutEngine} \
-                     -T${outputFormat} \
-                     ${nix-lib.strings.escapeShellArgs (
-                       nix-lib.attrsets.mapAttrsToList
-                         (name: value: "-G${name}=${value}")
-                         vars)} \
-                     ${nix-lib.strings.escapeShellArgs graphvizArgs} \
-                     -o$out \
-                     $src/${nix-lib.strings.escapeShellArg main}
+                  ${pkgs.graphviz}/bin/dot \
+                   -K${layoutEngine} \
+                   -T${outputFormat} \
+                   ${nix-lib.strings.escapeShellArgs (
+                     nix-lib.attrsets.mapAttrsToList
+                       (name: value: "-G${name}=${value}")
+                       vars)} \
+                   ${nix-lib.strings.escapeShellArgs graphvizArgs} \
+                   -o$out \
+                   $src/${nix-lib.strings.escapeShellArg main}
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
@@ -90,12 +90,55 @@
                     -t${outputFormat} \
                     -o$tmp \
                     ${nix-lib.strings.escapeShellArgs plantumlArgs} \
-                    $src/${nix-lib.strings.escape main}
+                    $src/${nix-lib.strings.escapeShellArg main}
                   ${checkUniqueGlob "$tmp/*" "plantuml"}
                   mv $tmp/* $out
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
+
+            # See https://pandoc.org/MANUAL.html#creating-a-pdf
+            pandocTexlivePackages = {
+              inherit (pkgs.texlive)
+                scheme-basic
+                amsfonts
+                amsmath
+                lm
+                unicode-math
+                iftex
+                fancyvrb
+                #longable
+                booktabs
+                graphics
+                hyperref
+                xcolor
+                ulem
+                geometry
+                setspace
+                babel
+                fontspec
+                selnolig
+                upquote
+                microtype
+                parskip
+                xurl
+                bookmark
+                mdwtools# (footnote)
+                xetex
+                luatex
+                svg
+                etoolbox
+                subfig
+                caption
+                float
+                # Client should add if you need:
+                # bidi
+                # xecjk
+                # mathspec
+                # csquotes
+                # listings
+                ;
+            };
 
             # TODO: User should be able to specify Lua filters, Haskell filters.
             markdownDocument =
@@ -104,81 +147,39 @@
               , main ? "index.md"
               , pdfEngine ? "xelatex"
               , outputFormat ? "pdf"
-              # date is needed if you want a deterministic document
+                # date is needed if you want a deterministic document
               , date ? null
-              , metadata-files ? []
-              , metadata-vars ? {}
+              , metadata-files ? [ ]
+              , metadata-vars ? { }
               , filters ? [
-                "${pkgs.pandoc-lua-filters}/share/pandoc/filters/abstract-to-meta.lua"
-                "${pkgs.pandoc-lua-filters}/share/pandoc/filters/pagebreak.lua"
-                "${pkgs.pandoc-lua-filters}/share/pandoc/filters/cito.lua"
-                "${pkgs.haskellPackages.pandoc-crossref}/bin/pandoc-crossref"
-                "citeproc"
-              ]
+                  "${pkgs.pandoc-lua-filters}/share/pandoc/filters/abstract-to-meta.lua"
+                  "${pkgs.pandoc-lua-filters}/share/pandoc/filters/pagebreak.lua"
+                  "${pkgs.pandoc-lua-filters}/share/pandoc/filters/cito.lua"
+                  "${pkgs.haskellPackages.pandoc-crossref}/bin/pandoc-crossref"
+                  "citeproc"
+                ]
               , csl ? "${self.packages.${system}.citation-style-language-styles}/ieee-with-url.csl"
-              , texlivePackages ? { }
-              # nixPackages will be accessible on the $PATH
+              , texlivePackages ? pandocTexlivePackages
+                # nixPackages will be accessible on the $PATH
               , nixPackages ? [ ]
-              # Nix package inputs will be accessible in the source directory by the derivation.name
+                # Nix package inputs will be accessible in the source directory by the derivation.name
               , inputs ? [ ]
               }:
               let
-                pdfEngineTexlivePackages = rec {
-                  context = { inherit (pkgs.texlive) scheme-context; };
-                  pdflatex = {
-                    inherit (pkgs.texlive)
-                      scheme-basic
-                      amsfonts
-                      amsmath
-                      lm
-                      unicode-math
-                      iftex
-                      fancyvrb
-                      #longable
-                      booktabs
-                      graphics
-                      hyperref
-                      xcolor
-                      ulem
-                      geometry
-                      setspace
-                      babel
-                      fontspec
-                      selnolig
-                      upquote
-                      microtype
-                      parskip
-                      bookmark
-                      xetex
-                      luatex
-                      mdwtools # (footnote)
-                      svg
-                      koma-script
-                      etoolbox
-                      subfig
-                      caption
-                      float
-                      # Client should add if you need:
-                      # bidi
-                      # xecjk
-                      # mathspec
-                      # csquotes
-                      # listings
-                    ;
-                  };
-                  xelatex = pdflatex;
-                  lualatex = pdflatex;
-                };
                 pdfEngineNixPackages = {
                   tectonic = [ pkgs.tectonic ];
                 };
                 toPandocFilterArg = filter:
                   if builtins.isAttrs filter
-                  then nix-utils-lib.getAttrOr {
-                    json = "--filter=${filter.path}";
-                    lua = "--lua-filter=${filter.path}";
-                    citeproc = "--citeproc";
-                  } filter.type (throw "Unsupported filter type ${filter.type}")
+                  then
+                    nix-utils-lib.getAttrOr
+                      {
+                        json = "--filter=${filter.path}";
+                        lua = "--lua-filter=${filter.path}";
+                        citeproc = "--citeproc";
+                      }
+                      filter.type
+                      (throw "Unsupported filter type ${filter.type}")
                   else
                     if filter == "citeproc"
                     then "--citeproc"
@@ -198,14 +199,7 @@
                 buildInputs = (
                   [
                     pkgs.librsvg # requried to including svg images
-                    (pkgs.texlive.combine
-                      ((
-                        nix-utils-lib.getAttrOr
-                          pdfEngineTexlivePackages
-                          pdfEngine
-                          (builtins.throw "Unknown pdfEngine ${pdfEngine}")
-                      )
-                      // texlivePackages))
+                    (pkgs.texlive.combine texlivePackages)
                   ]
                   ++ nixPackages
                   ++ (nix-utils-lib.getAttrOr pdfEngineNixPackages pdfEngine [ ])
@@ -246,7 +240,7 @@
               , texlivePackages ? { }
               , bibliography ? true
               , fullOutput ? false
-              , Werror? false
+              , Werror ? false
                 # Nix packages will be accessible in the source directory by the derivation.name
               , inputs ? [ ]
               }:
@@ -255,8 +249,8 @@
                 allTexlivePackages =
                   { inherit (pkgs.texlive) scheme-basic collection-xetex latexmk; }
                   // (if bibliography
-                      then { inherit (pkgs.texlive) collection-bibtexextra; }
-                      else { })
+                  then { inherit (pkgs.texlive) collection-bibtexextra; }
+                  else { })
                   // texlivePackages;
                 latexmkFlagForTexEngine = {
                   "xelatex" = "-pdfxe";
@@ -284,17 +278,17 @@
                      -outdir=$tmp \
                      -auxdir=$tmp \
                      ${if Werror then "-Werror" else ""} \
-                     ${nix-lib.strings.escape mainStem}
+                     ${nix-lib.strings.escapeShellArg mainStem}
                   latexmk_status=$?
                   set -e
                   if [ $latexmk_status -ne 0 ]; then
-                    cat $out/${nix-lib.strings.escape mainStem}.log
+                    cat $out/${nix-lib.strings.escapeShellArg mainStem}.log
                     echo "Aborting: Latexmk failed"
                     exit $latexmk_status
                   fi
                   ${if fullOutput
                     then "mv $tmp/* $out"
-                    else "mv $tmp/${nix-lib.strings.escape mainStem}.pdf $out"}
+                    else "mv $tmp/${nix-lib.strings.escapeShellArg mainStem}.pdf $out"}
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
@@ -327,6 +321,122 @@
               hash = "sha256-X+iRAt2Yzp1ePtmHT5UJ4MjwFVMu2gixmw9+zoqPq20=";
               name = "citation-style-language-styles";
             })
+
+            (nix-utils-lib.mergeDerivations {
+              name = "examples";
+              packageSet = nix-utils-lib.packageSetRec (self: [
+                (lib.graphvizFigure {
+                  src = ./examples-src/graphviz;
+
+                  # Will be `$(basename $src).$outputFormat` by default.
+                  name = "graphviz.svg";
+
+                  # This is the default
+                  main = "index.dot";
+
+                  # See https://graphviz.org/docs/outputs/
+                  # This is the default
+                  outputFormat = "svg";
+
+                  # This is the default
+                  # See https://graphviz.org/docs/layouts/
+                  layoutEngine = "dot";
+
+                  # Will be empty by default.
+                  vars = {
+                    hello = "world";
+                  };
+
+                  # Nix derivations, accessible in $src by their derivation name
+                  # This is the default
+                  inputs = [ ];
+                })
+                (lib.markdownDocument {
+                  src = ./examples-src/markdown-bells-and-whistles;
+
+                  # This is the default
+                  main = "index.md";
+
+                  # $(basename $src).$suffix by default
+                  name = "markdown-pdflatex.pdf";
+
+                  # This is the default
+                  # Currently, I support pdflatex, xelatex, and context
+                  pdfEngine = "xelatex";
+
+                  # This is the default
+                  # See https://pandoc.org/MANUAL.html#option--to
+                  outputFormat = "pdf";
+
+                  # date is needed if you want a deterministic document
+                  # specified in seconds since the Unix Epoch
+                  date = 1655528400;
+
+                  texlivePackages = lib.pandocTexlivePackages // {
+                    inherit (pkgs.texlive)
+                      fancyhdr
+                      # other TeXlive packages here
+                      # See https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/tools/typesetting/tex/texlive/pkgs.nix
+                      ;
+                  };
+
+                  # nixPackages will be accessible on the $PATH
+                  nixPackages = [ ];
+
+                  # Nix package inputs will be accessible in the source directory by the derivation.name
+                  inputs = [
+                    self."graphviz.svg"
+                  ];
+                })
+
+
+                (lib.markdownDocument {
+                  src = ./examples-src/markdown-bells-and-whistles;
+                  pdfEngine = "xelatex";
+                  name = "markdown-xelatex.pdf";
+                })
+
+                # (lib.markdownDocument {
+                #   src = ./examples-src/markdown-bells-and-whistles;
+                #   pdfEngine = "lualatex";
+                #   name = "markdown-document-lualatex.pdf";
+                #   texlivePackages = lib.pandocTexlivePackages // { inherit (pkgs.texlive) fancyhdr; };
+                # })
+
+                (lib.markdownDocument {
+                  src = ./examples-src/markdown-bells-and-whistles;
+                  pdfEngine = "context";
+                  name = "markdown-context.pdf";
+                  texlivePackages = lib.pandocTexlivePackages // { inherit (pkgs.texlive) fancyhdr scheme-context; };
+                })
+
+                (lib.latexDocument {
+                  src = ./examples-src/latex;
+                  name = "pdflatex.pdf";
+                  texEngine = "pdflatex";
+                  texlivePackages = lib.pandocTexlivePackages // { inherit (pkgs.texlive) fancyhdr; };
+                })
+
+                # (lib.latexDocument {
+                #   src = ./examples-src/latex;
+                #   name = "lualatex.pdf";
+                #   texEngine = "lualatex";
+                #   texlivePackages = lib.pandocTexlivePackages // { inherit (pkgs.texlive) fancyhdr; };
+                # })
+
+                (lib.latexDocument {
+                  src = ./examples-src/latex;
+                  name = "xelatex.pdf";
+                  texEngine = "xelatex";
+                  texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
+                })
+              ] ++ (if system == "i686-linux" then [ ] else [
+                (lib.plantumlFigure {
+                  src = ./examples-src/plantuml;
+                  name = "plantuml.svg";
+                })
+              ]));
+            })
           ];
 
           checks = { } // packages;
@@ -334,7 +444,7 @@
       ) // {
       templates = {
         default = {
-          path = ./templates/markdown;
+          path = ./templates;
           description = "Template for making documents as a Nix Flake";
         };
       };
@@ -343,7 +453,6 @@
   # TODO: Fix fontconfig error
   # Fontconfig error: No writable cache directories
   # TODO: Default name should have correct suffix
-  # TODO: Example of using inputs
   # TODO: pygmentsTexFigure
   # TODO: dvi2svg https://dvisvgm.de/
 }

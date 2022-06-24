@@ -56,7 +56,7 @@ urlcolor: blue
 toccolor: blue
 
 # HTML and LaTeX options
-fontsize: 12
+fontsize: 12pt
 # mainfont: 
 # sansfont:
 # monofont:
@@ -138,8 +138,6 @@ First, note the YAML block header which precedes the Markdown document. This rep
 - `[Small caps]{.smallcaps}`: [Small caps]{.smallcaps}
 
 - `[Underline]{.underline}`: [Underline]{.underline}
-
-- \textcolor{red}{red text}
 
 - Raw `\LaTeX`: \LaTeX
 
