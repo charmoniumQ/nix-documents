@@ -56,37 +56,6 @@ These packages support an `inputs` parameter, which should be a list of derivati
 
 ## markdown-document
 
-This will compile your Markdown document:
-
-```nix
-nix-documents.lib.${system}.markdown-document {
-  src = ./.;
-
-  # Choose from this repo, without the .csl:
-  # [1]: https://github.com/citation-style-language/styles
-  csl-style = "acm-sig-proceedings";
-
-  # This is the default and can be omitted.
-  main = "index.md";
-
-  # This is the default and can be omitted.
-  # See Pandoc's options here:
-  # https://pandoc.org/MANUAL.html#option--to
-  output = "pdf";
-
-  # Omit if not needed
-  texlive-packages = {
-    inherit (pkgs.texlive) physics tikz;
-  };
-
-  # See Pandoc's default template
-  # https://github.com/jgm/pandoc-templates/blob/master/default.latex
-  # And Pandoc manula on templating
-  # https://pandoc.org/MANUAL.html#templates
-  template = "template.tex";
-}
-```
-
 I based this off of the excellent [pandoc-scholar], which adds extensions to Markdown that make it amenable to academic writing (e.g. citation counting). Writing Markdown has several advantages to writing raw LaTeX:
 
 1. The syntax is prettier.
@@ -96,10 +65,10 @@ I based this off of the excellent [pandoc-scholar], which adds extensions to Mar
 5. You can still drop down to raw LaTeX from Markdown, if you must: either using LaTeX to generate a figure or embedding LaTeX commands in Markdown.
 6. You can output to more formats, including docx, EPUB, ODT, HTML, and others.
 
-See [tests/markdown/index.md] for an example which compiles to [examples/markdown-pdflatex.pdf].
+See [examples-src/markdown-bells-and-whistles/index.md] for an example which compiles to [examples/markdown-xelatex.pdf] or [examples/markdown-context.pdf].
 
-[tests/markdown/index.md]: tests/markdown/index.md
-[examples/markdown-pdflatex.pdf]: examples/markdown-pdflatex.pdf
+[examples-src/markdown-bells-and-whistles/index.md]: examples-src/markdown-bells-and-whistles/index.md
+[examples/markdown-xelatex.pdf]: examples/markdown-xelatex.pdf
 [pandoc-scholar]: https://github.com/pandoc-scholar/pandoc-scholar
 
 ## latex-document
@@ -111,60 +80,21 @@ The relationship between the pdfLaTeX, LuaLaTex, XeLaTeX [[1], [2]]. If you are 
 
 To use a TeXlive package, find its name in [CTAN] and in check that it exists in [Nix TeXlive]. Then add it to `texlivePackages`
 
-```nix
-lib.latexDocument {
-  src = ./tests/latex;
-
-  name = "xelatex.pdf";
-
-  # xelatex is defualt. Also try "pdflatex" or "lualatex"
-
-  texEngine = "xelatex";
-
-  # Optional if none
-  texlivePackages = {
-    inherit (pkgs.texlive)
-      fancyhdr
-      lastpage
-      # other packages here.
-    ;
-  };
-};
-```
-
 [Nix TeXlive]: https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/tools/typesetting/tex/texlive/pkgs.nix
 [CTAN]: https://ctan.org/
 
 ## graphviz-figure
 
-```nix
-nix-documents.lib.${system}.graphviz-document {
-  src = ./.;
+See [examples-src/graphviz/index.dot] for an example which compiles to [examples/graphviz.svg].
 
-  # This is the default and can be omitted.
-  main = "index.puml";
-}
-```
-
-See [tests/graphviz/index.dot] for an example which compiles to [examples/graphviz.svg].
-
-[tests/graphviz/index.dot]: tests/graphviz/index.dot
+[examples-src/graphviz/index.dot]: examples-src/graphviz/index.dot
 [examples/graphviz.svg]: examples/graphviz.svg
 
 ## plantuml-figure
 
-```nix
-nix-documents.lib.${system}.graphviz-document {
-  src = ./.;
+See [examples-src/plantuml/index.puml] for an example which compiles to [examples/plantuml.svg].
 
-  # This is the default and can be omitted.
-  main = "index.dot";
-}
-```
-
-See [tests/plantuml/index.puml] for an example which compiles to [examples/plantuml.svg].
-
-[tests/plantuml/index.puml]: tests/plantuml/index.puml
+[examples-src/plantuml/index.puml]: examples-src/plantuml/index.puml
 [examples/plantuml.svg]: examples/plantuml.svg
 
 ## revealjs-presentation
