@@ -150,13 +150,13 @@
               , date ? null
               , metadata-files ? [ ]
               , metadata-vars ? { }
+              , citeproc ? true
               , filters ? [
                   "${pkgs.pandoc-lua-filters}/share/pandoc/filters/abstract-to-meta.lua"
                   "${pkgs.pandoc-lua-filters}/share/pandoc/filters/pagebreak.lua"
                   "${pkgs.pandoc-lua-filters}/share/pandoc/filters/cito.lua"
                   "${pkgs.haskellPackages.pandoc-crossref}/bin/pandoc-crossref"
-                  "citeproc"
-                ]
+                ] ++ (if citeproc then [ "citeproc" ] else [ ])
               , csl ? "${self.packages.${system}.citation-style-language-styles}/ieee-with-url.csl"
               , texlivePackages ? pandocTexlivePackages
                 # nixPackages will be accessible on the $PATH
@@ -178,7 +178,7 @@
                         citeproc = "--citeproc";
                       }
                       filter.type
-                      (throw "Unsupported filter type ${filter.type}")
+                      (builtins.throw "Unsupported filter type ${filter.type}")
                   else
                     if filter == "citeproc"
                     then "--citeproc"
@@ -214,9 +214,9 @@
                       "${pkgs.pandoc}/bin/pandoc"
                       "--pdf-engine=${pdfEngine}"
                       "--to=${outputFormat}"
-                      "--csl=${csl}"
                       main
                     ]
+                    (if citeproc then ["--csl=${csl}"] else [])
                     (builtins.map
                       (mfile: "--metadata-file=${mfile}")
                       metadata-files)
@@ -228,8 +228,6 @@
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
-            # TODO: turn on --citeproc selectively
-            # Fix the paths in index.md
 
             latexDocument =
               { src
@@ -245,17 +243,24 @@
               }:
               let
                 mainStem = nix-lib.strings.removeSuffix ".tex" main;
-                allTexlivePackages =
-                  { inherit (pkgs.texlive) scheme-basic collection-xetex latexmk; }
-                  // (if bibliography
-                  then { inherit (pkgs.texlive) collection-bibtexextra; }
-                  else { })
-                  // texlivePackages;
                 latexmkFlagForTexEngine = {
                   "xelatex" = "-pdfxe";
                   "lualatex" = "-pdflua";
                   "pdflatex" = "-pdf";
                 };
+                texlivePackagesForTexEngine = {
+                  "xelatex" = { inherit (pkgs.texlive) latexmk scheme-basic collection-xetex; };
+                  "lualatex" = { inherit (pkgs.texlive) latexmk scheme-basic collection-luatex; };
+                  "pdflatex" = { inherit (pkgs.texlive) latexmk scheme-basic; };
+                };
+                allTexlivePackages =
+                  (nix-utils-lib.getAttrOr texlivePackagesForTexEngine texEngine (builtins.throw "Unknown texEngine ${texEngine}"))
+                  // (
+                    if bibliography
+                    then { inherit (pkgs.texlive) collection-bibtexextra; }
+                    else { }
+                  )
+                  // texlivePackages;
               in
               pkgs.stdenv.mkDerivation {
                 inherit name;
@@ -393,14 +398,22 @@
                   src = ./examples-src/markdown-bells-and-whistles;
                   pdfEngine = "xelatex";
                   name = "markdown-xelatex.pdf";
+                  inputs = [
+                    self."graphviz.svg"
+                  ];
                 })
 
-                # (lib.markdownDocument {
-                #   src = ./examples-src/markdown-bells-and-whistles;
-                #   pdfEngine = "lualatex";
-                #   name = "markdown-document-lualatex.pdf";
-                #   texlivePackages = lib.pandocTexlivePackages // { inherit (pkgs.texlive) fancyhdr; };
-                # })
+                /*
+                (lib.markdownDocument {
+                  src = ./examples-src/markdown-bells-and-whistles;
+                  pdfEngine = "lualatex";
+                  name = "markdown-document-lualatex.pdf";
+                  texlivePackages = lib.pandocTexlivePackages // { inherit (pkgs.texlive) fancyhdr; };
+                  inputs = [
+                    self."graphviz.svg"
+                  ];
+                })
+                */
 
                 (lib.markdownDocument {
                   src = ./examples-src/markdown-bells-and-whistles;
@@ -413,15 +426,17 @@
                   src = ./examples-src/latex;
                   name = "pdflatex.pdf";
                   texEngine = "pdflatex";
-                  texlivePackages = lib.pandocTexlivePackages // { inherit (pkgs.texlive) fancyhdr; };
+                  texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
                 })
 
-                # (lib.latexDocument {
-                #   src = ./examples-src/latex;
-                #   name = "lualatex.pdf";
-                #   texEngine = "lualatex";
-                #   texlivePackages = lib.pandocTexlivePackages // { inherit (pkgs.texlive) fancyhdr; };
-                # })
+                /*
+                (lib.latexDocument {
+                  src = ./examples-src/latex;
+                  name = "lualatex.pdf";
+                  texEngine = "lualatex";
+                  texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
+                })
+                */
 
                 (lib.latexDocument {
                   src = ./examples-src/latex;
@@ -452,6 +467,6 @@
   # TODO: Fix fontconfig error
   # Fontconfig error: No writable cache directories
   # TODO: Default name should have correct suffix
-  # TODO: pygmentsTexFigure
+  # TODO: pygmentsText
   # TODO: dvi2svg https://dvisvgm.de/
 }

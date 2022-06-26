@@ -1,0 +1,29 @@
+\documentclass[12pt]{article}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhead[L,C]{}
+\fancyhead[R]{\textbf{The performance of new graduates}}
+\fancyfoot[L]{From: K. Grant}
+\fancyfoot[C]{To: Dean A. Smith}
+\fancyfoot[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{2pt}
+
+\usepackage[backend=biber]{biblatex}
+\addbibresource{myrefs.bib}
+
+\begin{document}
+\section{Dummy Text}
+
+I doubt that there is any useful information here~\cite{wikibook}.
+
+All we know is limited, apart from knowing the answer we all know. Or do we? Wombat and Koala have discovered some interesting things~\cite{wombat2016}.
+
+Some people are too nosy. What can happen to them is described by Laura Lion~\cite[9]{lion2010}.
+
+%https://en.wikibooks.org/wiki/LaTeX/Bibliographies_with_biblatex_and_biber
+
+\printbibliography
+
+\end{document}

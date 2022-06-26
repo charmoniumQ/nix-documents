@@ -23,13 +23,18 @@
           formatter = pkgs.nixpkgs-fmt;
 
           packages = nix-utils-lib.packageSetRec (self: [
+
+            # Example of a figure:
             (nix-documents-lib.graphvizFigure {
               src = ./figure;
               name = "figure.svg";
             })
+
+            # Example of markdown document:
             (nix-documents-lib.markdownDocument {
-              src = ./document;
-              name = "document.pdf";
+              src = ./document-markdown;
+              name = "document-markdown.pdf";
+              # xelatex > pdflatex, if you get to choose
               pdfEngine = "xelatex";
               texlivePackages = nix-documents-lib.pandocTexlivePackages // {
                 inherit (pkgs.texlive)
@@ -39,17 +44,34 @@
                   ;
               };
 
-              # Nix package inputs will be accessible in the source directory by the derivation.name
               inputs = [
+                # Example of including a figure:
                 self."figure.svg"
               ];
             })
+
+            # Example of a latex document:
+            (nix-documents-lib.latexDocument {
+              src = ./document-latex/latex;
+              name = "document-latex.pdf";
+              # See document-markdown for these options.
+              texEngine = "xelatex";
+              texlivePackages = {
+                inherit (pkgs.texlive)
+                  scheme-basic
+                  collection-xetex
+                  ;
+                #inputs = [ ];
+              };
+            })
+
             (nix-utils-lib.mergeDerivations {
               name = "default";
               packageSet = (nix-utils-lib.packageSet [
                 # Comment out if you don't need the figure separately.
                 self."figure.svg"
-                self."document.pdf"
+                self."document-latex.pdf"
+                self."document-markdown.pdf"
               ]);
             })
           ]);
