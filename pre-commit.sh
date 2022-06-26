@@ -23,7 +23,8 @@ rm --recursive --force test-template
 mkdir test-template
 cd test-template
 nix flake init --template ..
-git add -A .
-#cnix build --keep-going --show-trace --print-build-logs
+git add -A . # add src so it shows up in the Nix build env.
+nix build --keep-going --show-trace --print-build-logs
+git add result # add the result so it gets `git rm`ed later.
 cd ..
 git rm -r --force test-template

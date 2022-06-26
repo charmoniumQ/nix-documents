@@ -52,17 +52,15 @@
 
             # Example of a latex document:
             (nix-documents-lib.latexDocument {
-              src = ./document-latex/latex;
+              src = ./document-latex;
               name = "document-latex.pdf";
-              # See document-markdown for these options.
+
+              # These options work the same way as in markdownDocument above.
               texEngine = "xelatex";
               texlivePackages = {
-                inherit (pkgs.texlive)
-                  scheme-basic
-                  collection-xetex
-                  ;
-                #inputs = [ ];
+                inherit (pkgs.texlive) fancyhdr;
               };
+              inputs = [ ];
             })
 
             (nix-utils-lib.mergeDerivations {
