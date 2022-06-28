@@ -47,18 +47,19 @@
                   } // nix-utils-lib.packageSet inputs;
                 };
                 FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
-                buildPhase = ''
-                  ${pkgs.graphviz}/bin/dot \
-                   -K${layoutEngine} \
-                   -T${outputFormat} \
-                   ${nix-lib.strings.escapeShellArgs (
-                     nix-lib.attrsets.mapAttrsToList
-                       (name: value: "-G${name}=${value}")
-                       vars)} \
-                   ${nix-lib.strings.escapeShellArgs graphvizArgs} \
-                   -o$out \
-                   $src/${nix-lib.strings.escapeShellArg main}
-                '';
+                buildPhase = nix-utils-lib.listOfListOfArgs [
+                  [
+                    "${pkgs.graphviz}/bin/dot"
+                    "-K${layoutEngine}"
+                    "-T${outputFormat}"
+                    (nix-lib.attrsets.mapAttrsToList
+                      (name: value: "-G${name}=${value}")
+                      vars)
+                    graphvizArgs
+                    { literal = "-o$out"; }
+                    { literal = "$src/${nix-lib.strings.escapeShellArg main}"; }
+                  ]
+                ];
                 phases = [ "unpackPhase" "buildPhase" ];
               };
 
@@ -85,11 +86,15 @@
                 GRAPHVIZ_DOT = "${pkgs.graphviz}/bin/dot";
                 buildPhase = ''
                   tmp=$(mktemp --directory)
-                  ${pkgs.plantuml}/bin/plantuml \
-                    -t${outputFormat} \
-                    -o$tmp \
-                    ${nix-lib.strings.escapeShellArgs plantumlArgs} \
-                    $src/${nix-lib.strings.escapeShellArg main}
+                  ${nix-utils-lib.listOfListOfArgs [
+                    [
+                      "${pkgs.plantuml}/bin/plantuml"
+                      "-t${outputFormat}"
+                      plantumlArgs
+                      { literal = "-o$tmp"; }
+                      { literal = "$src/${nix-lib.strings.escapeShellArg main}"; }
+                    ]
+                  ]}
                   ${checkUniqueGlob "$tmp/*" "plantuml"}
                   mv $tmp/* $out
                 '';
@@ -159,6 +164,7 @@
                 ] ++ (if citeproc then [ "citeproc" ] else [ ])
               , csl ? "${self.packages.${system}.citation-style-language-styles}/ieee-with-url.csl"
               , texlivePackages ? pandocTexlivePackages
+              , pandocArgs ? [ ]
                 # nixPackages will be accessible on the $PATH
               , nixPackages ? [ ]
                 # Nix package inputs will be accessible in the source directory by the derivation.name
@@ -205,18 +211,18 @@
                 );
                 FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
                 buildPhase = ''
-                  ${
-                    if builtins.isNull date
+                  log=$(mktemp)
+                  ${if builtins.isNull date
                     then ""
                     else "export SOURCE_DATE_EPOCH=${builtins.toString date}"}
-                  ${nix-lib.strings.escapeShellArgs (builtins.concatLists [
-                    [
-                      "${pkgs.pandoc}/bin/pandoc"
-                      "--pdf-engine=${pdfEngine}"
-                      "--to=${outputFormat}"
-                      main
-                    ]
-                    (if citeproc then ["--csl=${csl}"] else [])
+                  set -x +e
+                  ${nix-utils-lib.listOfListOfArgs [[
+                    "${pkgs.pandoc}/bin/pandoc"
+                    "--pdf-engine=${pdfEngine}"
+                    "--to=${outputFormat}"
+                    {literal="--output=$out";}
+                    main
+                    (if citeproc then "--csl=${csl}" else [])
                     (builtins.map
                       (mfile: "--metadata-file=${mfile}")
                       metadata-files)
@@ -224,7 +230,16 @@
                       (mvar: mval: "--metadata=${mvar}:${mval}")
                       metadata-vars)
                     (builtins.map toPandocFilterArg filters)
-                  ])} --output=$out
+                    "--verbose"
+                    pandocArgs
+                    {literal="2> $log";}
+                  ]]}
+                  pandoc_success=$?
+                  set +x -e
+                  if [ $pandoc_success -ne 0 ]; then
+                    cat $log
+                    exit $pandoc_success
+                  fi
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
@@ -276,13 +291,17 @@
                 buildPhase = ''
                   tmp=$(mktemp --directory)
                   set +e
-                  latexmk \
-                     ${builtins.getAttr texEngine latexmkFlagForTexEngine} \
-                     -emulate-aux-dir \
-                     -outdir=$tmp \
-                     -auxdir=$tmp \
-                     ${if Werror then "-Werror" else ""} \
-                     ${nix-lib.strings.escapeShellArg mainStem}
+                  ${nix-utils-lib.listOfListOfArgs [
+                    [
+                      "latexmk"
+                      (builtins.getAttr texEngine latexmkFlagForTexEngine)
+                      "-emulate-aux-dir"
+                      {literal="-outdir=$tmp";}
+                      {literal="-auxdir=$tmp";}
+                      (if Werror then "-Werror" else [])
+                      mainStem
+                    ]
+                  ]}
                   latexmk_status=$?
                   set -e
                   if [ $latexmk_status -ne 0 ]; then
@@ -297,6 +316,41 @@
                 phases = [ "unpackPhase" "buildPhase" ];
               };
 
+
+            pygmentCodeFigure =
+              { src
+              , name ? builtins.baseNameOf src
+              , main ? "index"
+                # nix shell nixpkgs#python39Packages.pygments --command pygmentize -L lexer
+              , lexer ? "auto"
+                # nix shell nixpkgs#python39Packages.pygments --command pygmentize -L filter
+              , filters ? [ ]
+                # nix shell nixpkgs#python39Packages.pygments --command pygmentize -L formatter
+                # Note that formatter options are applied specified directly in the formatter string
+                # e.g. "keywordcase:case=upper"
+              , formatter ? "tex"
+                # nix shell nixpkgs#python39Packages.pygments --command pygmentize -L style
+                # Options include stripnl, stripall, tabsize, encoding, outencoding, linenos, style, heading
+              , options ? { }
+              }:
+              pkgs.stdenv.mkDerivation {
+                inherit name;
+                inherit src;
+                buildPhase = nix-utils-lib.listOfListOfArgs [
+                  [
+                    "${pkgs.python39Packages.pygments}/bin/pygmentize"
+                    "${src}/${main}"
+                    (if lexer == "auto" then [ "-g" ] else [ "-l" lexer ])
+                    [ "-f" formatter ]
+                    (builtins.map (filter: "-F ${filter}") filters)
+                    (nix-lib.attrsets.mapAttrsToList
+                      (option: value: [ "-P" "${option}=${value}" ])
+                      options)
+                    [ "-o" { literal = "$out"; } ]
+                  ]
+                ];
+                phases = [ "unpackPhase" "buildPhase" ];
+              };
           };
 
           formatter = pkgs.nixpkgs-fmt;
@@ -355,6 +409,7 @@
                   # This is the default
                   inputs = [ ];
                 })
+
                 (lib.markdownDocument {
                   src = ./examples-src/markdown-bells-and-whistles;
 
@@ -362,7 +417,7 @@
                   main = "index.md";
 
                   # $(basename $src).$suffix by default
-                  name = "markdown-pdflatex.pdf";
+                  name = "markdown-xelatex.pdf";
 
                   # This is the default
                   # Currently, I support pdflatex, xelatex, and context
@@ -393,33 +448,34 @@
                   ];
                 })
 
-
                 (lib.markdownDocument {
                   src = ./examples-src/markdown-bells-and-whistles;
-                  pdfEngine = "xelatex";
-                  name = "markdown-xelatex.pdf";
+                  pdfEngine = "pdflatex";
+                  name = "markdown-pdflatex.pdf";
                   inputs = [
                     self."graphviz.svg"
                   ];
                 })
-
-                /*
+                /* 
                 (lib.markdownDocument {
                   src = ./examples-src/markdown-bells-and-whistles;
                   pdfEngine = "lualatex";
-                  name = "markdown-document-lualatex.pdf";
-                  texlivePackages = lib.pandocTexlivePackages // { inherit (pkgs.texlive) fancyhdr; };
+                  name = "markdown-lualatex.pdf";
                   inputs = [
                     self."graphviz.svg"
                   ];
-                })
-                */
+                }) */
 
                 (lib.markdownDocument {
                   src = ./examples-src/markdown-bells-and-whistles;
                   pdfEngine = "context";
                   name = "markdown-context.pdf";
-                  texlivePackages = lib.pandocTexlivePackages // { inherit (pkgs.texlive) fancyhdr scheme-context; };
+                  texlivePackages = lib.pandocTexlivePackages // {
+                    inherit (pkgs.texlive) scheme-context;
+                  };
+                  inputs = [
+                    self."graphviz.svg"
+                  ];
                 })
 
                 (lib.latexDocument {
@@ -427,16 +483,20 @@
                   name = "pdflatex.pdf";
                   texEngine = "pdflatex";
                   texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
+                  inputs = [
+                    #self."pygment-code.tex"
+                  ];
                 })
-
-                /*
+                /* 
                 (lib.latexDocument {
                   src = ./examples-src/latex;
                   name = "lualatex.pdf";
                   texEngine = "lualatex";
                   texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
-                })
-                */
+                  inputs = [
+                    #self."pygment-code.tex"
+                  ];
+                }) */
 
                 (lib.latexDocument {
                   src = ./examples-src/latex;
@@ -444,6 +504,23 @@
                   texEngine = "xelatex";
                   texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
                 })
+                /* 
+                (lib.pygmentCodeFigure {
+                  src = ./examples-src/pygmentize;
+                  name = "pygment-code.tex";
+                  main = "index.py";
+                  lexer = "auto";
+                  filters = ["whitespace"];
+                  formatter = "tex";
+                  options = {
+                    style = "zenburn";
+                    linenos = "True";
+                    texcomments = "True";
+                    mathescape = "True";
+                  };
+                })
+                */
+
               ] ++ (if system == "i686-linux" then [ ] else [
                 (lib.plantumlFigure {
                   src = ./examples-src/plantuml;
@@ -464,9 +541,14 @@
       };
     };
 
+  # TODO: mergeDerivations should support source paths outside the Nix store by converting them to derivations.
+  # TODO: packageSet should check for dups.
+  # TODO: Use mergeDerivations'
+  # TODO: Don't use inputs; client should define `src` as a merge instead.
+  # TODO: Default name should have correct suffix
+  # TODO: Check that file exists
+  # TODO: Type check texLivePackages
+  # TODO: dvi2svg https://dvisvgm.de/
   # TODO: Fix fontconfig error
   # Fontconfig error: No writable cache directories
-  # TODO: Default name should have correct suffix
-  # TODO: pygmentsText
-  # TODO: dvi2svg https://dvisvgm.de/
 }
