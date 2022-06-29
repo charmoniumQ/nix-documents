@@ -31,7 +31,7 @@
 
             graphvizFigure =
               { src
-              , name ? builtins.baseNameOf src
+              , name ? "${builtins.baseNameOf src}.${outputFormat}"
               , main ? "index.dot"
               , outputFormat ? "svg"
               , layoutEngine ? "dot"
@@ -65,9 +65,8 @@
 
             plantumlFigure =
               { src
-              , name ? builtins.baseNameOf src
               , main ? "index.puml"
-
+              , name ? "${builtins.baseNameOf src}.${outputFormat}"
                 # See https://plantuml.com/command-line
               , outputFormat ? "svg"
               , plantumlArgs ? [ ]
@@ -146,8 +145,8 @@
 
             # TODO: User should be able to specify Lua filters, Haskell filters.
             markdownDocument =
-              { src ? builtins.baseNameOf src
-              , name ? null
+              { src
+              , name ? "${builtins.baseNameOf src}.${outputFormat}"
               , main ? "index.md"
               , pdfEngine ? "xelatex"
               , outputFormat ? "pdf"
@@ -246,7 +245,7 @@
 
             latexDocument =
               { src
-              , name ? builtins.baseNameOf src
+              , name ? "${builtins.baseNameOf src}.pdf"
               , texEngine ? "xelatex"
               , main ? "index.tex"
               , texlivePackages ? { }
@@ -319,7 +318,7 @@
 
             pygmentCodeFigure =
               { src
-              , name ? builtins.baseNameOf src
+              , name ? "${builtins.baseNameOf src}.${formatter}"
               , main ? "index"
                 # nix shell nixpkgs#python39Packages.pygments --command pygmentize -L lexer
               , lexer ? "auto"
@@ -545,7 +544,6 @@
   # TODO: packageSet should check for dups.
   # TODO: Use mergeDerivations'
   # TODO: Don't use inputs; client should define `src` as a merge instead.
-  # TODO: Default name should have correct suffix
   # TODO: Check that file exists
   # TODO: Type check texLivePackages
   # TODO: dvi2svg https://dvisvgm.de/

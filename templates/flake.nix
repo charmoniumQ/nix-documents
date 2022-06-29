@@ -27,13 +27,11 @@
             # Example of a figure:
             (nix-documents-lib.graphvizFigure {
               src = ./figure;
-              name = "figure.svg";
             })
 
             # Example of markdown document:
             (nix-documents-lib.markdownDocument {
               src = ./document-markdown;
-              name = "document-markdown.pdf";
               # xelatex > pdflatex, if you get to choose
               pdfEngine = "xelatex";
               texlivePackages = nix-documents-lib.pandocTexlivePackages // {
@@ -53,7 +51,6 @@
             # Example of a latex document:
             (nix-documents-lib.latexDocument {
               src = ./document-latex;
-              name = "document-latex.pdf";
 
               # These options work the same way as in markdownDocument above.
               texEngine = "xelatex";
