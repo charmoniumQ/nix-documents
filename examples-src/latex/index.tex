@@ -1,5 +1,7 @@
 \documentclass[12pt]{article}
-
+\usepackage{fancyvrb}
+\usepackage{color}
+\usepackage[utf8]{inputenc}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhead[L,C]{}
@@ -13,6 +15,8 @@
 \usepackage[backend=biber]{biblatex}
 \addbibresource{myrefs.bib}
 
+\input{pygment-defs.tex}
+
 \begin{document}
 \section{Dummy Text}
 
@@ -24,7 +28,7 @@ Some people are too nosy. What can happen to them is described by Laura Lion~\ci
 
 %https://en.wikibooks.org/wiki/LaTeX/Bibliographies_with_biblatex_and_biber
 
-%\include{pygment-code.tex}
+\input{pygment-code.tex}
 
 \printbibliography
 

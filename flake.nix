@@ -8,7 +8,14 @@
     };
   };
   outputs = { self, nixpkgs, flake-utils, nix-utils }:
-    flake-utils.lib.eachDefaultSystem
+   {
+      templates = {
+        default = {
+          path = ./templates;
+          description = "Template for making documents as a Nix Flake";
+        };
+      };
+    } // flake-utils.lib.eachDefaultSystem
       (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
@@ -39,7 +46,7 @@
               , graphvizArgs ? [ ]
               , inputs ? [ ]
               }:
-              pkgs.stdenv.mkDerivation {
+              pkgs.stdenvNoCC.mkDerivation {
                 inherit name;
                 src = nix-utils-lib.mergeDerivations {
                   packageSet = {
@@ -74,7 +81,7 @@
                 # Nix packages will be accessible in the source directory by the derivation.name
               , inputs ? [ ]
               }:
-              pkgs.stdenv.mkDerivation {
+              pkgs.stdenvNoCC.mkDerivation {
                 inherit name;
                 src = nix-utils-lib.mergeDerivations {
                   packageSet = {
@@ -193,7 +200,7 @@
                       else "--filter=${filter}"
                 ;
               in
-              pkgs.stdenv.mkDerivation {
+              pkgs.stdenvNoCC.mkDerivation {
                 inherit name;
                 src = nix-utils-lib.mergeDerivations {
                   packageSet = {
@@ -276,7 +283,7 @@
                   )
                   // texlivePackages;
               in
-              pkgs.stdenv.mkDerivation {
+              pkgs.stdenvNoCC.mkDerivation {
                 inherit name;
                 src = nix-utils-lib.mergeDerivations {
                   packageSet = {
@@ -289,7 +296,7 @@
                 FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
                 buildPhase = ''
                   tmp=$(mktemp --directory)
-                  set +e
+                  set +e -x
                   ${nix-utils-lib.listOfListOfArgs [
                     [
                       "latexmk"
@@ -302,9 +309,9 @@
                     ]
                   ]}
                   latexmk_status=$?
-                  set -e
+                  set -e +x
                   if [ $latexmk_status -ne 0 ]; then
-                    cat $out/${nix-lib.strings.escapeShellArg mainStem}.log
+                    cat $tmp/${nix-lib.strings.escapeShellArg mainStem}.log
                     echo "Aborting: Latexmk failed"
                     exit $latexmk_status
                   fi
@@ -314,7 +321,6 @@
                 '';
                 phases = [ "unpackPhase" "buildPhase" ];
               };
-
 
             pygmentCodeFigure =
               { src
@@ -331,28 +337,65 @@
                 # nix shell nixpkgs#python39Packages.pygments --command pygmentize -L style
                 # Options include stripnl, stripall, tabsize, encoding, outencoding, linenos, style, heading
               , options ? { }
+              , pygmentArgs ? [ ]
               }:
-              pkgs.stdenv.mkDerivation {
+              pkgs.stdenvNoCC.mkDerivation {
                 inherit name;
                 inherit src;
                 buildPhase = nix-utils-lib.listOfListOfArgs [
+                  [ "set" "-x" ]
                   [
                     "${pkgs.python39Packages.pygments}/bin/pygmentize"
                     "${src}/${main}"
                     (if lexer == "auto" then [ "-g" ] else [ "-l" lexer ])
                     [ "-f" formatter ]
-                    (builtins.map (filter: "-F ${filter}") filters)
+                    (builtins.map (filter: [ "-F" filter ]) filters)
                     (nix-lib.attrsets.mapAttrsToList
                       (option: value: [ "-P" "${option}=${value}" ])
                       options)
+                    pygmentArgs
                     [ "-o" { literal = "$out"; } ]
                   ]
+                  [ "set" "+x" ]
                 ];
                 phases = [ "unpackPhase" "buildPhase" ];
               };
+
+            pygmentCodeDefs =
+              { name
+                # nix shell nixpkgs#python39Packages.pygments --command pygmentize -L formatter
+                # Note that formatter options are applied specified directly in the formatter string
+                # e.g. "keywordcase:case=upper"
+              , formatter ? "tex"
+                # nix shell nixpkgs#python39Packages.pygments --command pygmentize -L style
+              , style ? "default"
+                # See `get_style_defs` of the specific formatter
+              , arg ? ""
+              , pygmentArgs ? [ ]
+              , options ? { }
+              }:
+              pkgs.runCommand
+                name
+                { }
+                (nix-utils-lib.listOfListOfArgs [
+                  [
+                    "${pkgs.python39Packages.pygments}/bin/pygmentize"
+                    [ "-S" style ]
+                    [ "-f" formatter ]
+                    [ "-a" arg ]
+                    (nix-lib.attrsets.mapAttrsToList
+                      (option: value: [ "-P" "${option}=${value}" ])
+                      options)
+                    pygmentArgs
+                    { literal = "> $out"; }
+                  ]
+                ])
+            ;
           };
 
           formatter = pkgs.nixpkgs-fmt;
+
+          checks = { } // packages;
 
           packages = nix-utils-lib.packageSet [
             (pkgs.fetchFromGitHub {
@@ -481,46 +524,61 @@
                   src = ./examples-src/latex;
                   name = "pdflatex.pdf";
                   texEngine = "pdflatex";
-                  texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
+                  texlivePackages = { inherit (pkgs.texlive) fancyhdr fancyvrb xcolor; };
                   inputs = [
-                    #self."pygment-code.tex"
+                    self."pygment-defs.tex"
+                    self."pygment-code.tex"
                   ];
                 })
-                /* 
-                (lib.latexDocument {
-                  src = ./examples-src/latex;
-                  name = "lualatex.pdf";
-                  texEngine = "lualatex";
-                  texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
-                  inputs = [
-                    #self."pygment-code.tex"
-                  ];
-                }) */
 
                 (lib.latexDocument {
                   src = ./examples-src/latex;
                   name = "xelatex.pdf";
                   texEngine = "xelatex";
-                  texlivePackages = { inherit (pkgs.texlive) fancyhdr; };
+                  texlivePackages = { inherit (pkgs.texlive) fancyhdr fancyvrb xcolor; };
+                  inputs = [
+                    self."pygment-defs.tex"
+                    self."pygment-code.tex"
+                  ];
                 })
+
                 /* 
+                (lib.latexDocument {
+                  src = ./examples-src/latex;
+                  name = "lualatex.pdf";
+                  texEngine = "lualatex";
+                  texlivePackages = { inherit (pkgs.texlive) fancyhdr fancyvrb xcolor; };
+                  inputs = [
+                    self."pygment-defs.tex"
+                    self."pygment-code.tex"
+                  ];
+                }) */
+
+                (lib.pygmentCodeDefs {
+                  name = "pygment-defs.tex";
+                  formatter = "tex";
+                  style = "autumn";
+                  arg = "";
+                })
+
                 (lib.pygmentCodeFigure {
                   src = ./examples-src/pygmentize;
                   name = "pygment-code.tex";
                   main = "index.py";
                   lexer = "auto";
-                  filters = ["whitespace"];
+                  filters = [ ];
                   formatter = "tex";
                   options = {
-                    style = "zenburn";
+                    style = "autumn";
                     linenos = "True";
                     texcomments = "True";
                     mathescape = "True";
                   };
                 })
-                */
 
               ] ++ (if system == "i686-linux" then [ ] else [
+                # Note that this doesn't work in i686-linux
+                # The JDK for i686-linux is marked as broken ("end of life")
                 (lib.plantumlFigure {
                   src = ./examples-src/plantuml;
                   name = "plantuml.svg";
@@ -528,17 +586,8 @@
               ]));
             })
           ];
-
-          checks = { } // packages;
         }
-      ) // {
-      templates = {
-        default = {
-          path = ./templates;
-          description = "Template for making documents as a Nix Flake";
-        };
-      };
-    };
+      );
 
   # TODO: mergeDerivations should support source paths outside the Nix store by converting them to derivations.
   # TODO: packageSet should check for dups.

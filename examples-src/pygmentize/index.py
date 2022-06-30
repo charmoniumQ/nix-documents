@@ -7,7 +7,9 @@ for i in range(1,n+1):
         result += "Buzz"
     if result == "":
         result = str(i)
+
 # Test latex in comments
 # \LaTeX
+
 # Test math mode in comments
 # $\int x^2 \, \mathrm{d}x$

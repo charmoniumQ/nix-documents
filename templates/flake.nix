@@ -22,6 +22,8 @@
         rec {
           formatter = pkgs.nixpkgs-fmt;
 
+          checks = { } // packages;
+
           packages = nix-utils-lib.packageSetRec (self: [
 
             # Example of a figure:
@@ -70,8 +72,6 @@
               ]);
             })
           ]);
-
-          checks = { } // packages;
         }
       );
 }
