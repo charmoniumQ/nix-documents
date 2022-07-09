@@ -32,23 +32,29 @@
             })
 
             # Example of markdown document:
-            (nix-documents-lib.markdownDocument {
-              src = ./document-markdown;
-              # xelatex > pdflatex, if you get to choose
-              pdfEngine = "xelatex";
-              texlivePackages = nix-documents-lib.pandocTexlivePackages // {
-                inherit (pkgs.texlive)
-                  fancyhdr
-                  # other TeXlive packages here
-                  # See https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/tools/typesetting/tex/texlive/pkgs.nix
-                  ;
-              };
-
-              inputs = [
-                # Example of including a figure:
-                self."figure.svg"
-              ];
-            })
+            (
+              let
+                x = (nix-documents-lib.markdownDocument {
+                  # Example of src when including a figure:
+                  name = "document-markdown.pdf";
+                  src = nix-utils-lib.mergeDerivations {
+                    packageSet = {
+                      "." = ./document-markdown;
+                    } // nix-utils-lib.packageSet [ self."figure.svg" ];
+                  };
+                  # xelatex > pdflatex, if you get to choose
+                  pdfEngine = "xelatex";
+                  texlivePackages = nix-documents-lib.pandocTexlivePackages // {
+                    inherit (pkgs.texlive)
+                      fancyhdr
+                      # other TeXlive packages here
+                      # See https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/tools/typesetting/tex/texlive/pkgs.nix
+                      ;
+                  };
+                });
+              in
+              builtins.trace x.name x
+            )
 
             # Example of a latex document:
             (nix-documents-lib.latexDocument {
@@ -59,7 +65,6 @@
               texlivePackages = {
                 inherit (pkgs.texlive) fancyhdr;
               };
-              inputs = [ ];
             })
 
             (nix-utils-lib.mergeDerivations {

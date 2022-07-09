@@ -8,7 +8,7 @@
     };
   };
   outputs = { self, nixpkgs, flake-utils, nix-utils }:
-   {
+    {
       templates = {
         default = {
           path = ./templates;
@@ -20,7 +20,7 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           nix-utils-lib = nix-utils.lib.${system};
-          nix-utils-pkgs = nix-utils.packages.${system};
+          nix-utils-pkgs = nix-utils-lib.packages.${system};
           nix-lib = nixpkgs.lib;
           checkUniqueGlob = glob: program: ''
             num_files=0
@@ -44,15 +44,10 @@
               , layoutEngine ? "dot"
               , vars ? { }
               , graphvizArgs ? [ ]
-              , inputs ? [ ]
               }:
               pkgs.stdenvNoCC.mkDerivation {
                 inherit name;
-                src = nix-utils-lib.mergeDerivations {
-                  packageSet = {
-                    "." = nix-utils-lib.srcDerivation { inherit src; };
-                  } // nix-utils-lib.packageSet inputs;
-                };
+                inherit src;
                 FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
                 buildPhase = nix-utils-lib.listOfListOfArgs [
                   [
@@ -77,17 +72,10 @@
                 # See https://plantuml.com/command-line
               , outputFormat ? "svg"
               , plantumlArgs ? [ ]
-
-                # Nix packages will be accessible in the source directory by the derivation.name
-              , inputs ? [ ]
               }:
               pkgs.stdenvNoCC.mkDerivation {
                 inherit name;
-                src = nix-utils-lib.mergeDerivations {
-                  packageSet = {
-                    "." = nix-utils-lib.srcDerivation { inherit src; };
-                  } // nix-utils-lib.packageSet inputs;
-                };
+                inherit src;
                 FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
                 GRAPHVIZ_DOT = "${pkgs.graphviz}/bin/dot";
                 buildPhase = ''
@@ -173,8 +161,6 @@
               , pandocArgs ? [ ]
                 # nixPackages will be accessible on the $PATH
               , nixPackages ? [ ]
-                # Nix package inputs will be accessible in the source directory by the derivation.name
-              , inputs ? [ ]
               }:
               let
                 pdfEngineNixPackages = {
@@ -202,11 +188,7 @@
               in
               pkgs.stdenvNoCC.mkDerivation {
                 inherit name;
-                src = nix-utils-lib.mergeDerivations {
-                  packageSet = {
-                    "." = nix-utils-lib.srcDerivation { inherit src; };
-                  } // nix-utils-lib.packageSet inputs;
-                };
+                inherit src;
                 buildInputs = (
                   [
                     pkgs.librsvg # requried to including svg images
@@ -242,7 +224,7 @@
                   ]]}
                   pandoc_success=$?
                   set +x -e
-                  if [ $pandoc_success -ne 0 ]; then
+                  if [ $pandoc_success-ne 0 ]; then
                     cat $log
                     exit $pandoc_success
                   fi
@@ -259,8 +241,6 @@
               , bibliography ? true
               , fullOutput ? false
               , Werror ? false
-                # Nix packages will be accessible in the source directory by the derivation.name
-              , inputs ? [ ]
               }:
               let
                 mainStem = nix-lib.strings.removeSuffix ".tex" main;
@@ -285,11 +265,7 @@
               in
               pkgs.stdenvNoCC.mkDerivation {
                 inherit name;
-                src = nix-utils-lib.mergeDerivations {
-                  packageSet = {
-                    "." = nix-utils-lib.srcDerivation { inherit src; };
-                  } // nix-utils-lib.packageSet inputs;
-                };
+                inherit src;
                 buildInputs = [
                   (pkgs.texlive.combine allTexlivePackages)
                 ];
@@ -382,7 +358,7 @@
                     "${pkgs.python39Packages.pygments}/bin/pygmentize"
                     [ "-S" style ]
                     [ "-f" formatter ]
-                    [ "-a" arg ]
+                    (if arg == "" then [ ] else [ "-a" arg ])
                     (nix-lib.attrsets.mapAttrsToList
                       (option: value: [ "-P" "${option}=${value}" ])
                       options)
@@ -398,6 +374,7 @@
           checks = { } // packages;
 
           packages = nix-utils-lib.packageSet [
+
             (pkgs.fetchFromGitHub {
               owner = "hakimel";
               repo = "reveal.js";
@@ -446,14 +423,14 @@
                   vars = {
                     hello = "world";
                   };
-
-                  # Nix derivations, accessible in $src by their derivation name
-                  # This is the default
-                  inputs = [ ];
                 })
 
                 (lib.markdownDocument {
-                  src = ./examples-src/markdown-bells-and-whistles;
+                  src = nix-utils-lib.mergeDerivations {
+                    packageSet = {
+                      "." = ./examples-src/markdown-bells-and-whistles;
+                    } // nix-utils-lib.packageSet [ self."graphviz.svg" ];
+                  };
 
                   # This is the default
                   main = "index.md";
@@ -483,75 +460,74 @@
 
                   # nixPackages will be accessible on the $PATH
                   nixPackages = [ ];
-
-                  # Nix package inputs will be accessible in the source directory by the derivation.name
-                  inputs = [
-                    self."graphviz.svg"
-                  ];
                 })
 
                 (lib.markdownDocument {
-                  src = ./examples-src/markdown-bells-and-whistles;
+                  src = nix-utils-lib.mergeDerivations {
+                    packageSet = {
+                      "." = ./examples-src/markdown-bells-and-whistles;
+                    } // nix-utils-lib.packageSet [ self."graphviz.svg" ];
+                  };
                   pdfEngine = "pdflatex";
                   name = "markdown-pdflatex.pdf";
-                  inputs = [
-                    self."graphviz.svg"
-                  ];
                 })
+
                 /* 
                 (lib.markdownDocument {
-                  src = ./examples-src/markdown-bells-and-whistles;
+                  src = nix-utils-lib.mergeDerivations {
+                    packageSet = {
+                      "." = ./examples-src/markdown-bells-and-whistles;
+                    } // nix-utils-lib.packageSet [self."graphviz.svg"];
+                  };
                   pdfEngine = "lualatex";
                   name = "markdown-lualatex.pdf";
-                  inputs = [
-                    self."graphviz.svg"
-                  ];
                 }) */
 
                 (lib.markdownDocument {
-                  src = ./examples-src/markdown-bells-and-whistles;
+                  src = nix-utils-lib.mergeDerivations {
+                    packageSet = {
+                      "." = ./examples-src/markdown-bells-and-whistles;
+                    } // nix-utils-lib.packageSet [ self."graphviz.svg" ];
+                  };
                   pdfEngine = "context";
                   name = "markdown-context.pdf";
                   texlivePackages = lib.pandocTexlivePackages // {
                     inherit (pkgs.texlive) scheme-context;
                   };
-                  inputs = [
-                    self."graphviz.svg"
-                  ];
                 })
 
                 (lib.latexDocument {
-                  src = ./examples-src/latex;
+                  src = nix-utils-lib.mergeDerivations {
+                    packageSet = {
+                      "." = ./examples-src/latex;
+                    } // nix-utils-lib.packageSet [ self."pygment-defs.tex" self."pygment-code.tex" ];
+                  };
                   name = "pdflatex.pdf";
                   texEngine = "pdflatex";
                   texlivePackages = { inherit (pkgs.texlive) fancyhdr fancyvrb xcolor; };
-                  inputs = [
-                    self."pygment-defs.tex"
-                    self."pygment-code.tex"
-                  ];
                 })
 
                 (lib.latexDocument {
-                  src = ./examples-src/latex;
+                  src = nix-utils-lib.mergeDerivations {
+                    packageSet = {
+                      "." = ./examples-src/latex;
+                    } // nix-utils-lib.packageSet [ self."pygment-defs.tex" self."pygment-code.tex" ];
+                  };
                   name = "xelatex.pdf";
                   texEngine = "xelatex";
                   texlivePackages = { inherit (pkgs.texlive) fancyhdr fancyvrb xcolor; };
-                  inputs = [
-                    self."pygment-defs.tex"
-                    self."pygment-code.tex"
-                  ];
                 })
 
                 /* 
                 (lib.latexDocument {
-                  src = ./examples-src/latex;
+                  src = nix-utils-lib.mergeDerivations {
+                    packageSet = {
+                      "." = ./examples-src/latex;
+                    } // nix-utils-lib.packageSet [self."pygment-defs.tex" self."pygment-code.tex"];
+                  };
                   name = "lualatex.pdf";
                   texEngine = "lualatex";
                   texlivePackages = { inherit (pkgs.texlive) fancyhdr fancyvrb xcolor; };
-                  inputs = [
-                    self."pygment-defs.tex"
-                    self."pygment-code.tex"
-                  ];
                 }) */
 
                 (lib.pygmentCodeDefs {
@@ -589,12 +565,11 @@
         }
       );
 
-  # TODO: mergeDerivations should support source paths outside the Nix store by converting them to derivations.
+
   # TODO: packageSet should check for dups.
-  # TODO: Use mergeDerivations'
-  # TODO: Don't use inputs; client should define `src` as a merge instead.
   # TODO: Check that file exists
   # TODO: Type check texLivePackages
+  # TODO: File issue for lualatex
   # TODO: dvi2svg https://dvisvgm.de/
   # TODO: Fix fontconfig error
   # Fontconfig error: No writable cache directories
