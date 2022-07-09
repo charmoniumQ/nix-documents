@@ -35,18 +35,13 @@ $ nix-env -iA nixpkgs.nixFlakes
 $ echo experimental-features = nix-command flakes >> ~/.config/nix/nix.conf
 ```
 
-Once this is done, initialize a new project with:
+## Compiling your own documents
 
-```shell
-$ # To start a new flake,
-$ nix flake init --template github.com:charmoniumQ/nix-documents
-```
-
-## Documentation
+Run `nix flake init --template github.com:charmoniumQ/nix-documents` in your project directory to start a project template.
 
 Each function is documented in source in [`lib.nix`](lib.nix).
 
-See examples at the end of [`flake.nix`](flake.nix) and [`templates/flake.nix`](templates/flake.nix).
+See examples in [`examples-src/flake.nix`](examples-src/flake.nix).
 
 ## Generating subfigures
 
@@ -55,8 +50,14 @@ There are some plugins that let one embed one document in another. For example [
 1. It enables incremental compilation; if the Graphviz code did not change but other parts of the pandoc code did, Graphviz does not need to be invoked.
 2. It is more flexible. There may be some other compiler for which there is no pandoc plugin, or there may be some option you need to set on Graphviz that the plugin doesn't support.
 
-These packages support an `inputs` parameter, which should be a list of derivations (e.g. other documents or figures from this flake). Those will be compiled and placed in the source-tree under their derivation name. Make sure the name includes the `.svg` or whatever suffix.
+This can be done by setting the `src` attribute to be a merged source of several packages, e.g.:
+
+```
+src = nix-utils-lib.mergeDerivations {
+    packageSet = {
+        "." = ./document-markdown;
+    } // nix-utils-lib.packageSet [ self."figure.svg" ];
+};
+```
 
 [pandoc-graphviz]: https://github.com/Hakuyume/pandoc-filter-graphviz
-
-<!-- TODO: Show flake.nix composition -->

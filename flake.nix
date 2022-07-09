@@ -35,6 +35,7 @@
   # TODO: File issue for lualatex
   # TODO: dvi2svg https://dvisvgm.de/
   # TODO: revealjs presentation
+  # TODO: add pdfengine packages to markdownDocument automatically.
   # TODO: Fix fontconfig error
   # Fontconfig error: No writable cache directories
 }

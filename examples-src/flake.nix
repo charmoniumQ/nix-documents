@@ -81,7 +81,6 @@
                     name = "markdown-pdflatex.pdf";
                   })
 
-                  /*
                   (nix-documents-lib.markdownDocument {
                     src = nix-utils-lib.mergeDerivations {
                       packageSet = {
@@ -90,8 +89,10 @@
                     };
                     pdfEngine = "lualatex";
                     name = "markdown-lualatex.pdf";
+                    texlivePackages = nix-documents-lib.pandocTexlivePackages // {
+                      inherit (pkgs.texlive) collection-luatex;
+                    };
                   })
-                  */
 
                   (nix-documents-lib.markdownDocument {
                     src = nix-utils-lib.mergeDerivations {
@@ -128,7 +129,6 @@
                     texlivePackages = { inherit (pkgs.texlive) fancyhdr fancyvrb xcolor; };
                   })
 
-                  /*
                   (nix-documents-lib.latexDocument {
                     src = nix-utils-lib.mergeDerivations {
                       packageSet = {
@@ -139,7 +139,6 @@
                     texEngine = "lualatex";
                     texlivePackages = { inherit (pkgs.texlive) fancyhdr fancyvrb xcolor; };
                   })
-                  */
 
                   (nix-documents-lib.pygmentStyleDefs {
                     name = "pygment-defs.tex";

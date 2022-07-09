@@ -110,6 +110,7 @@ rec {
         );
         FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
         buildPhase = ''
+          HOME=$(mktemp --directory)
           log=$(mktemp)
           ${if builtins.isNull date
           then ""
@@ -135,7 +136,7 @@ rec {
           ]]}
           pandoc_success=$?
           set +x -e
-          if [ $pandoc_success-ne 0 ]; then
+          if [ $pandoc_success -ne 0 ]; then
           cat $log
           exit $pandoc_success
           fi
@@ -202,6 +203,7 @@ rec {
         FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
         buildPhase = ''
           tmp=$(mktemp --directory)
+          HOME=$(mktemp --directory)
           set +e -x
           ${nix-utils-lib.listOfListOfArgs [
           [
