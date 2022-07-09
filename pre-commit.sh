@@ -5,16 +5,14 @@ set -o errexit -o nounset -o xtrace -o pipefail
 
 # Nix fmt
 nix fmt
-git add flake.nix flake.lock 
 nix --keep-going --show-trace --print-build-logs flake check
 
 # Compile example documents
 rm --recursive --force examples
-nix build '.#examples' --keep-going --show-trace --print-build-logs
-cp --dereference --recursive result examples
+env --chdir examples-src nix build --keep-going --show-trace --print-build-logs
+cp --dereference --recursive examples-src/result examples
 chmod --recursive u+rw,g+rw examples
-unlink result
-git add examples
+unlink examples-src/result
 
 # Check that the Nix template works
 echo -e "If you add a feature, this may fail, because the Nix template refers to the version of the flake in GitHub.

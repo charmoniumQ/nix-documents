@@ -42,7 +42,11 @@ $ # To start a new flake,
 $ nix flake init --template github.com:charmoniumQ/nix-documents
 ```
 
-See examples at the end of [`flake.nix`](flake.nix).
+## Documentation
+
+Each function is documented in source in [`lib.nix`](lib.nix).
+
+See examples at the end of [`flake.nix`](flake.nix) and [`templates/flake.nix`](templates/flake.nix).
 
 ## Generating subfigures
 
@@ -56,56 +60,3 @@ These packages support an `inputs` parameter, which should be a list of derivati
 [pandoc-graphviz]: https://github.com/Hakuyume/pandoc-filter-graphviz
 
 <!-- TODO: Show flake.nix composition -->
-
-## latexDocument
-
-The relationship between the pdfLaTeX, LuaLaTex, XeLaTeX [[1], [2]]. If you are unsure, just use XeLaTeX.
-
-[1]: https://tex.stackexchange.com/questions/36/differences-between-luatex-context-and-xetex
-[2]: https://www.overleaf.com/learn/latex/Articles/The_TeX_family_tree%3A_LaTeX%2C_pdfTeX%2C_XeTeX%2C_LuaTeX_and_ConTeXt
-
-To use a TeXlive package, find its name in [CTAN] and in check that it exists in [Nix TeXlive]. Then add it to `texlivePackages`
-
-[Nix TeXlive]: https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/tools/typesetting/tex/texlive/pkgs.nix
-[CTAN]: https://ctan.org/
-
-## markdownDocument
-
-I based this off of the excellent [pandoc-scholar], which adds extensions to Markdown that make it amenable to academic writing (e.g. citation counting). Writing Markdown has several advantages to writing raw LaTeX:
-
-1. The syntax is prettier.
-2. You don't have to run the compiler multiple times to get the right output.
-3. Extensions can be written in Haskell or Lua, which are both "nicer" than the TeX language.
-4. The output is equally pretty, since Pandoc uses ConTeXt, XeTeX, LuaTeX, or pdfLaTeX under the hood.
-5. You can still drop down to raw LaTeX from Markdown, if you must: either using LaTeX to generate a figure or embedding LaTeX commands in Markdown.
-6. You can output to more formats, including docx, EPUB, ODT, HTML, and others.
-
-See [examples-src/markdown-bells-and-whistles/index.md] for an example which compiles to [examples/markdown-xelatex.pdf] or [examples/markdown-context.pdf].
-
-[examples-src/markdown-bells-and-whistles/index.md]: examples-src/markdown-bells-and-whistles/index.md
-[examples/markdown-xelatex.pdf]: examples/markdown-xelatex.pdf
-[pandoc-scholar]: https://github.com/pandoc-scholar/pandoc-scholar
-
-## graphvizFigure
-
-See [examples-src/graphviz/index.dot] for an example which compiles to [examples/graphviz.svg].
-
-[examples-src/graphviz/index.dot]: examples-src/graphviz/index.dot
-[examples/graphviz.svg]: examples/graphviz.svg
-
-## plantumlFigure
-
-See [examples-src/plantuml/index.puml] for an example which compiles to [examples/plantuml.svg].
-
-[examples-src/plantuml/index.puml]: examples-src/plantuml/index.puml
-[examples/plantuml.svg]: examples/plantuml.svg
-
-## revealjsPresentation
-
-## pygmentsListing
-
-Pygments can do source-code highlighting. I prefer this to using `minted` because
-1. it doesn't have rerun `pygmentize` if the code didn't change (so it's faster)
-2. it can generate SVG outputs for other document types (e.g. HTML).
-3. you don't need to enable `-shell-escape`, which is insecure
-4. you don't need to depend on other programs installed on the system

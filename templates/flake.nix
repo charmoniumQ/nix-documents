@@ -32,29 +32,24 @@
             })
 
             # Example of markdown document:
-            (
-              let
-                x = (nix-documents-lib.markdownDocument {
-                  # Example of src when including a figure:
-                  name = "document-markdown.pdf";
-                  src = nix-utils-lib.mergeDerivations {
-                    packageSet = {
-                      "." = ./document-markdown;
-                    } // nix-utils-lib.packageSet [ self."figure.svg" ];
-                  };
-                  # xelatex > pdflatex, if you get to choose
-                  pdfEngine = "xelatex";
-                  texlivePackages = nix-documents-lib.pandocTexlivePackages // {
-                    inherit (pkgs.texlive)
-                      fancyhdr
-                      # other TeXlive packages here
-                      # See https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/tools/typesetting/tex/texlive/pkgs.nix
-                      ;
-                  };
-                });
-              in
-              builtins.trace x.name x
-            )
+            (nix-documents-lib.markdownDocument {
+              # Example of src when including a figure:
+              name = "document-markdown.pdf";
+              src = nix-utils-lib.mergeDerivations {
+                packageSet = {
+                  "." = ./document-markdown;
+                } // nix-utils-lib.packageSet [ self."figure.svg" ];
+              };
+              # xelatex > pdflatex, if you get to choose
+              pdfEngine = "xelatex";
+              texlivePackages = nix-documents-lib.pandocTexlivePackages // {
+                inherit (pkgs.texlive)
+                  fancyhdr
+                  # other TeXlive packages here
+                  # See https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/tools/typesetting/tex/texlive/pkgs.nix
+                  ;
+              };
+            })
 
             # Example of a latex document:
             (nix-documents-lib.latexDocument {
