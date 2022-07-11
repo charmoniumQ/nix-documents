@@ -55,6 +55,9 @@
             (nix-documents-lib.latexDocument {
               src = ./document-latex;
 
+              # This is the default and can be omitted
+              name = "document-latex.pdf";
+
               # These options work the same way as in markdownDocument above.
               texEngine = "xelatex";
               texlivePackages = {
@@ -69,6 +72,7 @@
                 self."figure.svg"
                 self."document-latex.pdf"
                 self."document-markdown.pdf"
+                self."reveal-js"
               ]);
             })
           ]);

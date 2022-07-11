@@ -140,6 +140,10 @@
                     texlivePackages = { inherit (pkgs.texlive) fancyhdr fancyvrb xcolor; };
                   })
 
+                  (nix-documents-lib.revealJsPresentation {
+                    src = ./reveal-js-presentation;
+                  })
+
                   (nix-documents-lib.pygmentStyleDefs {
                     name = "pygment-defs.tex";
                     formatter = "tex";

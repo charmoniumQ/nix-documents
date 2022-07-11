@@ -32,7 +32,7 @@
   # TODO: packageSet should check for dups.
   # TODO: Check that file exists
   # TODO: Type check texLivePackages
-  # TODO: File issue for lualatex
+  # TODO: Function returns a map of packages; use attr to specify the output type, e.g. `(markdownDocument {}).pdf`.
   # TODO: dvi2svg https://dvisvgm.de/
   # TODO: revealjs presentation
   # TODO: add pdfengine packages to markdownDocument automatically.

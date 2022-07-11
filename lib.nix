@@ -230,6 +230,19 @@ rec {
         phases = [ "unpackPhase" "buildPhase" ];
       };
 
+    revealJsPresentation =
+      { src
+      , main ? "index.html"
+      , name ? "${builtins.baseNameOf src}"
+      }:
+      nix-utils-lib.mergeDerivations {
+        inherit name;
+        packageSet = {
+          "." = src;
+          "reveal-js" = packages.reveal-js;
+        };
+      };
+
     /*
       [Pygments] is a code-highlighting processor.
 
