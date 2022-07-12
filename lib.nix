@@ -230,6 +230,13 @@ rec {
         phases = [ "unpackPhase" "buildPhase" ];
       };
 
+    /*
+      Outputs a directory containing HTML and assets for a reveal.js presentation.
+
+      src: the directory containing HTML files and user-supplied assets. See <https://github.com/hakimel/reveal.js/blob/master/demo.html> for example.
+      main: the main file to compile.
+      name: the name of the resulting derivation, which contains a directory.
+    */
     revealJsPresentation =
       { src
       , main ? "index.html"
@@ -239,7 +246,9 @@ rec {
         inherit name;
         packageSet = {
           "." = src;
-          "reveal-js" = packages.reveal-js;
+          "dist" = packages.reveal-js;
+          "plugin" = packages.reveal-js-default-plugins;
+          "rajgoel-plugin" = packages.reveal-js-rajgoel-plugins;
         };
       };
 
@@ -477,19 +486,30 @@ rec {
     /*
       reveal.js is a presentation framework for JavaScript.
     */
-    (pkgs.fetchFromGitHub {
+    (nix-utils-lib.selectInDerivation {
+      deriv = pkgs.fetchFromGitHub {
+        owner = "hakimel";
+        repo = "reveal.js";
+        rev = "039972c730690af7a83a5cb832056a7cc8b565d7";
+        hash = "sha256-X43lsjoLBWmttIKj9Jzut0UP0dZlsue3fYbJ3++ojbU=";
+      };
+      path = "dist";
       name = "reveal-js";
-      owner = "hakimel";
-      repo = "reveal.js";
-      rev = "039972c730690af7a83a5cb832056a7cc8b565d7";
-      hash = "sha256-X43lsjoLBWmttIKj9Jzut0UP0dZlsue3fYbJ3++ojbU=";
     })
 
-    /*
-      Plugins for reveal.js
-    */
+    (nix-utils-lib.selectInDerivation {
+      deriv = pkgs.fetchFromGitHub {
+        owner = "hakimel";
+        repo = "reveal.js";
+        rev = "039972c730690af7a83a5cb832056a7cc8b565d7";
+        hash = "sha256-X43lsjoLBWmttIKj9Jzut0UP0dZlsue3fYbJ3++ojbU=";
+      };
+      path = "plugin";
+      name = "reveal-js-default-plugins";
+    })
+
     (pkgs.fetchFromGitHub {
-      name = "reveal-js-plugins";
+      name = "reveal-js-rajgoel-plugins";
       owner = "rajgoel";
       repo = "reveal.js-plugins";
       rev = "a90372093213587e27ac9b17f5d981414934143e";
