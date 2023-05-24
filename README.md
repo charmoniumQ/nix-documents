@@ -37,7 +37,7 @@ $ echo experimental-features = nix-command flakes >> ~/.config/nix/nix.conf
 
 ## Compiling your own documents
 
-Run `nix flake init --template github.com:charmoniumQ/nix-documents` in your project directory to start a project template.
+Run `nix flake init --template github:charmoniumQ/nix-documents` in your project directory to start a project template.
 
 Each function is documented in source in [`lib.nix`](lib.nix).
 

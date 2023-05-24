@@ -60,9 +60,9 @@
 
               # These options work the same way as in markdownDocument above.
               texEngine = "xelatex";
-              texlivePackages = {
-                inherit (pkgs.texlive) fancyhdr;
-              };
+              # texlivePackages = {
+              #   inherit (pkgs.texlive) fancyhdr;
+              # };
             })
 
             (nix-utils-lib.mergeDerivations {
@@ -71,8 +71,8 @@
                 # Comment out if you don't need the figure separately.
                 self."figure.svg"
                 self."document-latex.pdf"
-                self."document-markdown.pdf"
-                self."reveal-js"
+                #self."document-markdown.pdf"
+                # self."reveal-js"
               ]);
             })
           ]);
