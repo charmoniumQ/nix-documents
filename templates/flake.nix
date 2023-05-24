@@ -2,12 +2,15 @@
   inputs = {
     flake-utils = {
       url = "github:numtide/flake-utils";
+      inputs = { nixpkgs = { follows = "nixpkgs"; }; };
     };
     nix-utils = {
       url = "github:charmoniumQ/nix-utils";
+      inputs = { nixpkgs = { follows = "nixpkgs"; }; };
     };
     nix-documents = {
       url = "github:charmoniumQ/nix-documents";
+      inputs = { nixpkgs = { follows = "nixpkgs"; }; };
     };
   };
   outputs = { self, nixpkgs, flake-utils, nix-utils, nix-documents }:
@@ -60,9 +63,9 @@
 
               # These options work the same way as in markdownDocument above.
               texEngine = "xelatex";
-              # texlivePackages = {
-              #   inherit (pkgs.texlive) fancyhdr;
-              # };
+              texlivePackages = {
+                inherit (pkgs.texlive) fancyhdr;
+              };
             })
 
             (nix-utils-lib.mergeDerivations {
@@ -71,7 +74,7 @@
                 # Comment out if you don't need the figure separately.
                 self."figure.svg"
                 self."document-latex.pdf"
-                #self."document-markdown.pdf"
+                self."document-markdown.pdf"
                 # self."reveal-js"
               ]);
             })
