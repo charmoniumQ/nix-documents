@@ -36,7 +36,7 @@ rec {
       citeproc: whether to run Pandoc's citation processor. See [pandoc citeproc].
       csl: a Citation Style Language template for formatting bibliographies. See [CSL style repo] and the citation-style-language-styles package in this repo.
       filters: a list of either strings (like "my_filter.lua") or attrs (like {"lua" = "my_filter.lua"}). For strings, the type of filter is inferred by the filename. See [pandoc filters] and [pandoc lua filters].
-      texlivePackages: an attrset (dict) of package names to texlive packages. See [CTAN] and [Nix TeXlive] for package names.
+      texlivePackages: an attrset (dict) of package names to texlive packages. Search for your package on [CTAN], find the "in TeXLive as" field, search for that package in [Nix TeXlive], and if that exists, include pkgs.texlive.$package.
       pandocArgs: list of strings passed directly to pandoc.
       nixPackages: Nix packages to load in the build sandbox.
 
@@ -48,8 +48,8 @@ rec {
       [pandoc citeproc]: https://pandoc.org/MANUAL.html#citation-rendering
       [pandoc filters]: https://pandoc.org/MANUAL.html#option--filter
       [pandoc lua filters]: https://pandoc.org/MANUAL.html#option--lua-filter
-      [CTAN]: https://ctan.org/
-      [Nix TeXlive]: https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/tools/typesetting/tex/texlive/pkgs.nix
+      [CTAN]: https://ctan.org/search?phrase=
+      [Nix TeXlive]: https://raw.githubusercontent.com/NixOS/nixpkgs/master/pkgs/tools/typesetting/tex/texlive/tlpdb.nix
     */
     markdownDocument =
       { src
